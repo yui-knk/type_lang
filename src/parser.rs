@@ -52,21 +52,11 @@ impl Parser {
     }
 
     fn parse_bool(&mut self, bool: bool) -> Result<Node, Error> {
-        let token = self.next_token()?;
-
-        match token.kind {
-            Kind::EOF => Ok(Node::new_expression(Node::new_bool(bool))),
-            _ => Err(Error::UnexpectedToken("EOF".to_string(), token))
-        }
+        Ok(Node::new_expression(Node::new_bool(bool)))
     }
 
     fn parse_var_ref(&mut self, str: String) -> Result<Node, Error> {
-        let token = self.next_token()?;
-
-        match token.kind {
-            Kind::EOF => Ok(Node::new_expression(Node::new_var_ref(str))),
-            _ => Err(Error::UnexpectedToken("EOF".to_string(), token))
-        }
+        Ok(Node::new_expression(Node::new_var_ref(str)))
     }
 
     // -> x { exp }
