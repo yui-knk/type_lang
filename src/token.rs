@@ -58,6 +58,13 @@ impl Token {
     pub fn new_arrow() -> Token {
         Token { kind: Keyword(Keyword::ARROW) }
     }
+
+    pub fn has_keyword(&self, keyword: &Keyword) -> bool {
+        match self.kind {
+            Kind::Keyword(ref key) if key == keyword => true,
+            _ => false
+        }
+    }
 }
 
 pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {

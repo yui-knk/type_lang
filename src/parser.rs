@@ -10,8 +10,9 @@ pub struct Parser {
 #[derive(Debug, PartialEq)]
 pub enum Error {
     UnknownToken,
-    UnexpectedToken,
+    UnexpectedToken(String, Token), // expected, actual
     UnexpectedEOF,
+    NotSupported,
 }
 
 
@@ -46,7 +47,7 @@ impl Parser {
             Kind::Identifier(s) => self.parse_var_ref(s),
             Kind::Keyword(Keyword::ARROW) => self.parse_lambda(),
             Kind::EOF => Ok(Node::new_none_expression()),
-            _ => Err(Error::UnexpectedToken)
+            _ => Err(Error::NotSupported)
         }
     }
 
@@ -55,7 +56,7 @@ impl Parser {
 
         match token.kind {
             Kind::EOF => Ok(Node::new_expression(Node::new_bool(bool))),
-            _ => Err(Error::UnexpectedToken)
+            _ => Err(Error::UnexpectedToken("EOF".to_string(), token))
         }
     }
 
@@ -64,7 +65,7 @@ impl Parser {
 
         match token.kind {
             Kind::EOF => Ok(Node::new_expression(Node::new_var_ref(str))),
-            _ => Err(Error::UnexpectedToken)
+            _ => Err(Error::UnexpectedToken("EOF".to_string(), token))
         }
     }
 
@@ -72,7 +73,7 @@ impl Parser {
     fn parse_lambda(&mut self) -> Result<Node, Error> {
         let var = self.expect_identifier()?;
         let _ = self.expect_keyword(Keyword::LBRACE)?;
-        let node  = self.parse_expression()?;
+        let node = self.parse_expression()?;
         let _ = self.expect_keyword(Keyword::RBRACE)?;
 
         Ok(Node::new_lambda(var, node))
@@ -95,18 +96,11 @@ impl Parser {
     fn expect_keyword(&mut self, keyword: Keyword) -> Result<Token, Error> {
         let token = self.next_token()?;
 
-        match token.kind {
-            // Kind::Keyword(ref key) if *key == keyword => Ok(token),
-            Kind::Keyword(ref key) => {
-                if *key == keyword {
-                } else {
-                    return Err(Error::UnexpectedToken);
-                }
-            },
-            _ => return Err(Error::UnexpectedToken)
-        };
-
-        Ok(token)
+        if token.has_keyword(&keyword) {
+            Ok(token)
+        } else {
+            Err(Error::UnexpectedToken(format!("{:?}", keyword), token))
+        }
     }
 
     fn expect_identifier(&mut self) -> Result<String, Error> {
@@ -114,7 +108,7 @@ impl Parser {
 
         match token.kind {
             Kind::Identifier(s) => Ok(s),
-            _ => Err(Error::UnexpectedToken)
+            _ => Err(Error::UnexpectedToken("Identifier".to_string(), token))
         }
     }
 
@@ -123,7 +117,7 @@ impl Parser {
 
         match token.kind {
             Kind::EOF => Ok(()),
-            _ => Err(Error::UnexpectedToken)
+            _ => Err(Error::UnexpectedToken("EOF".to_string(), token))
         }
     }
 }
@@ -132,6 +126,7 @@ impl Parser {
 mod tests {
     use super::*;
     use node::{Node, Kind};
+    use token::{Kind as TokenKind, Keyword, Token};
 
     #[test]
     fn test_parse_true() {
@@ -159,7 +154,9 @@ mod tests {
     fn test_parse_true_false() {
         let mut parser = Parser::new(" true false ".to_string());
 
-        assert_eq!(parser.parse(), Err(Error::UnexpectedToken));
+        assert_eq!(parser.parse(), Err(
+            Error::UnexpectedToken("EOF".to_string(), Token {kind: TokenKind::Keyword(Keyword::FALSE)}))
+        );
     }
 
     #[test]
