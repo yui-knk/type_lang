@@ -103,7 +103,7 @@ impl Lexer {
 
         match convert_str_to_keyword(self.token_string()) {
             Some(k) => Ok(Token::new_keyword(k)),
-            None => Err(Error::UnknownToken(self.token_string().to_string())),
+            None => Ok(Token::new_identifier(self.token_string().to_string())),
         }
     }
 
@@ -189,10 +189,18 @@ mod tests {
     }
 
     #[test]
-    fn test_next_token_unknowntoken() {
+    fn test_next_token_identifier() {
         let mut lexer = Lexer::new(" bar".to_string());
 
-        assert_eq!(lexer.next_token(), Err(Error::UnknownToken("bar".to_string())));
+        assert_eq!(lexer.next_token(), Ok(Token::new_identifier("bar".to_string())));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_unknowntoken() {
+        let mut lexer = Lexer::new(" !".to_string());
+
+        assert_eq!(lexer.next_token(), Err(Error::UnknownToken("!".to_string())));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 }

@@ -6,6 +6,7 @@ pub struct Token {
 #[derive(Debug, PartialEq)]
 pub enum Kind {
     Keyword(Keyword),
+    Identifier(String),
     EOF, // End of File
 }
 
@@ -32,6 +33,10 @@ impl Token {
 
     pub fn new_keyword(k: Keyword) -> Token {
         Token { kind: Keyword(k) }
+    }
+
+    pub fn new_identifier(str: String) -> Token {
+        Token { kind: Identifier(str) }
     }
 
     pub fn new_lbrace() -> Token {
