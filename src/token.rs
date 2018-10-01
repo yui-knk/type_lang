@@ -13,6 +13,8 @@ pub enum Kind {
 pub enum Keyword {
     TRUE,
     FALSE,
+    LBRACE, // '{'
+    RBRACE, // '}'
     // IF,
     // THEN,
     // ELSE,
@@ -27,6 +29,14 @@ impl Token {
 
     pub fn new_keyword(k: Keyword) -> Token {
         Token { kind: Keyword(k) }
+    }
+
+    pub fn new_lbrace() -> Token {
+        Token { kind: Keyword(Keyword::LBRACE) }
+    }
+
+    pub fn new_rbrace() -> Token {
+        Token { kind: Keyword(Keyword::RBRACE) }
     }
 }
 

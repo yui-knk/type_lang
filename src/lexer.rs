@@ -12,7 +12,7 @@ pub struct Lexer {
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
-    UnknownToken,
+    UnknownToken(String),
     UnexpectedEOF,
 }
 
@@ -36,13 +36,16 @@ impl Lexer {
         if self.is_eof() {
             return Ok(Token::new_eof());
         }
-
-        let result = match self.next_char()? {
+        let c = self.peek_char()?;
+        let result = match c {
+            '{' => Ok(Token::new_lbrace()),
+            '}' => Ok(Token::new_rbrace()),
             'a'...'z' => self.read_identifier_or_keyword(),
             // '\n' => 
-            _ => Err(Error::UnknownToken)
+            _ => Err(Error::UnknownToken(self.peek_char().unwrap().to_string()))
         };
 
+        self.next_char();
         self.token_flush();
         result
     }
@@ -99,7 +102,7 @@ impl Lexer {
 
         match convert_str_to_keyword(self.token_string()) {
             Some(k) => Ok(Token::new_keyword(k)),
-            None => Err(Error::UnknownToken),
+            None => Err(Error::UnknownToken(self.token_string().to_string())),
         }
     }
 
@@ -139,10 +142,19 @@ mod tests {
     }
 
     #[test]
+    fn test_next_token_braces() {
+        let mut lexer = Lexer::new("  { } ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::LBRACE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::RBRACE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
     fn test_next_token_unknowntoken() {
         let mut lexer = Lexer::new(" bar".to_string());
 
-        assert_eq!(lexer.next_token(), Err(Error::UnknownToken));
+        assert_eq!(lexer.next_token(), Err(Error::UnknownToken("bar".to_string())));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 }

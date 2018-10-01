@@ -31,7 +31,8 @@ impl Parser {
         match token.kind {
             Kind::Keyword(Keyword::TRUE) => self.parse_bool(true),
             Kind::Keyword(Keyword::FALSE) => self.parse_bool(false),
-            Kind::EOF => Ok(Node::new_none_expression())
+            Kind::EOF => Ok(Node::new_none_expression()),
+            _ => Err(Error::UnexpectedToken)
         }
     }
 
@@ -53,7 +54,7 @@ impl Parser {
 
     fn build_error(&self, error: lexer::Error) -> Error {
         match error {
-            lexer::Error::UnknownToken => Error::UnexpectedToken,
+            lexer::Error::UnknownToken(_) => Error::UnexpectedToken,
             lexer::Error::UnexpectedEOF => Error::UnexpectedEOF
         }
     }
