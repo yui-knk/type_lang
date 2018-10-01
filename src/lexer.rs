@@ -39,6 +39,7 @@ impl Lexer {
         let result = match self.peek_char()? {
             '{' => Ok(Token::new_lbrace()),
             '}' => Ok(Token::new_rbrace()),
+            '-' => self.read_arrow(),
             'a'...'z' => self.read_identifier_or_keyword(),
             // '\n' => 
             _ => Err(Error::UnknownToken(self.peek_char().unwrap().to_string()))
@@ -104,8 +105,21 @@ impl Lexer {
         }
     }
 
+    fn read_arrow(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        if self.peek_char()? == '>' {
+            Ok(Token::new_arrow())
+        } else {
+            Err(Error::UnknownToken(self.token_string_n(1).to_string()))
+        }
+    }
+
     fn token_string(&self) -> &str {
         &self.source[self.tok .. self.cur]
+    }
+
+    fn token_string_n(&self, n: usize) -> &str {
+        &self.source[self.tok .. (self.cur + n)]
     }
 }
 
@@ -146,6 +160,21 @@ mod tests {
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::LBRACE)));
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::RBRACE)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_arrow() {
+        let mut lexer = Lexer::new(" -> ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::ARROW)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_invalid_arrow() {
+        let mut lexer = Lexer::new(" -? ".to_string());
+
+        assert_eq!(lexer.next_token(), Err(Error::UnknownToken("-?".to_string())));
     }
 
     #[test]
