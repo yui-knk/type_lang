@@ -1,12 +1,17 @@
 extern crate type_lang;
+extern crate clap;
 
 use std::process::exit;
+// use std::fs::File;
+// use std::io::prelude::*;
+
 use type_lang::eval::{Evaluator};
 use type_lang::parser::{Parser};
 
+use clap::{Arg, App};
 
-fn main() {
-    let mut parser = Parser::new("false".to_string());
+fn run(string: String) {
+    let mut parser = Parser::new(string);
     let eval = Evaluator::new();
     let result = match parser.parse() {
         Ok(node) => node,
@@ -25,4 +30,29 @@ fn main() {
     };
 
     println!("{:?}", value);
+}
+
+// fn run_from_file(file_name: &str) {
+//     let file = match File::open(str) {
+//         Ok(f) => f,
+//         Err(err) => panic!("{:?}", err)
+//     };
+//     let buf = BufRead::new(file);
+
+//     run();
+// }
+
+fn main() {
+    let matches = App::new("TypeLang")
+                          .arg(Arg::with_name("eval")
+                               .short("e")
+                               .value_name("input_str")
+                               .help("one line of script")
+                               .takes_value(true))
+                          .get_matches();
+
+    match matches.value_of("eval") {
+        Some(str) => run(str.to_string()),
+        None => println!("Give input script with -e.")
+    };
 }
