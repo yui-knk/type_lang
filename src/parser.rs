@@ -9,6 +9,7 @@ pub struct Parser {
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
+    UnknownToken,
     UnexpectedToken,
     UnexpectedEOF,
 }
@@ -26,12 +27,24 @@ impl Parser {
     }
 
     fn parse_program(&mut self) -> Result<Node, Error> {
+        let node = match self.parse_expression() {
+            ok @ Ok(Node {kind: ::node::Kind::NoneExpression}) => return ok,
+            Ok(n) => Ok(n),
+            err @ Err(_) => return err
+        };
+
+        self.expect_eof()?;
+        node
+    }
+
+    fn parse_expression(&mut self) -> Result<Node, Error> {
         let token = self.next_token()?;
 
         match token.kind {
             Kind::Keyword(Keyword::TRUE) => self.parse_bool(true),
             Kind::Keyword(Keyword::FALSE) => self.parse_bool(false),
             Kind::Identifier(s) => self.parse_var_ref(s),
+            Kind::Keyword(Keyword::ARROW) => self.parse_lambda(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::UnexpectedToken)
         }
@@ -55,6 +68,16 @@ impl Parser {
         }
     }
 
+    // -> x { exp }
+    fn parse_lambda(&mut self) -> Result<Node, Error> {
+        let var = self.expect_identifier()?;
+        let _ = self.expect_keyword(Keyword::LBRACE)?;
+        let node  = self.parse_expression()?;
+        let _ = self.expect_keyword(Keyword::RBRACE)?;
+
+        Ok(Node::new_lambda(var, node))
+    }
+
     fn next_token(&mut self) -> Result<Token, Error> {
         match self.lexer.next_token() {
             Ok(token) => Ok(token),
@@ -64,8 +87,43 @@ impl Parser {
 
     fn build_error(&self, error: lexer::Error) -> Error {
         match error {
-            lexer::Error::UnknownToken(_) => Error::UnexpectedToken,
+            lexer::Error::UnknownToken(_) => Error::UnknownToken,
             lexer::Error::UnexpectedEOF => Error::UnexpectedEOF
+        }
+    }
+
+    fn expect_keyword(&mut self, keyword: Keyword) -> Result<Token, Error> {
+        let token = self.next_token()?;
+
+        match token.kind {
+            // Kind::Keyword(ref key) if *key == keyword => Ok(token),
+            Kind::Keyword(ref key) => {
+                if *key == keyword {
+                } else {
+                    return Err(Error::UnexpectedToken);
+                }
+            },
+            _ => return Err(Error::UnexpectedToken)
+        };
+
+        Ok(token)
+    }
+
+    fn expect_identifier(&mut self) -> Result<String, Error> {
+        let token = self.next_token()?;
+
+        match token.kind {
+            Kind::Identifier(s) => Ok(s),
+            _ => Err(Error::UnexpectedToken)
+        }
+    }
+
+    fn expect_eof(&mut self) -> Result<(), Error> {
+        let token = self.next_token()?;
+
+        match token.kind {
+            Kind::EOF => Ok(()),
+            _ => Err(Error::UnexpectedToken)
         }
     }
 }
@@ -114,6 +172,17 @@ mod tests {
             )
         }));
     }
+
+    // #[test]
+    // fn test_parse_lambda() {
+    //     let mut parser = Parser::new(" -> x { false } ".to_string());
+
+    //     assert_eq!(parser.parse(), Ok(Node{
+    //         kind: Kind::Expression(
+    //             Box::new(Node{ kind: Kind::VarRef("x".to_string()) })
+    //         )
+    //     }));
+    // }
 
     #[test]
     fn test_parse_blank() {
