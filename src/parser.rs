@@ -160,16 +160,18 @@ mod tests {
         }));
     }
 
-    // #[test]
-    // fn test_parse_lambda() {
-    //     let mut parser = Parser::new(" -> x { false } ".to_string());
+    #[test]
+    fn test_parse_lambda() {
+        let mut parser = Parser::new(" -> x { false } ".to_string());
 
-    //     assert_eq!(parser.parse(), Ok(Node{
-    //         kind: Kind::Expression(
-    //             Box::new(Node{ kind: Kind::VarRef("x".to_string()) })
-    //         )
-    //     }));
-    // }
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Lambda("x".to_string(), Box::new(Node
+                { kind: Kind::Expression(
+                    Box::new(Node { kind: Kind::Bool(false) })
+                )}
+            ))}
+        ));
+    }
 
     #[test]
     fn test_parse_blank() {
