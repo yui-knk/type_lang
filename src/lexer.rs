@@ -36,8 +36,7 @@ impl Lexer {
         if self.is_eof() {
             return Ok(Token::new_eof());
         }
-        let c = self.peek_char()?;
-        let result = match c {
+        let result = match self.peek_char()? {
             '{' => Ok(Token::new_lbrace()),
             '}' => Ok(Token::new_rbrace()),
             'a'...'z' => self.read_identifier_or_keyword(),
@@ -68,16 +67,15 @@ impl Lexer {
         self.cur += 1;
     }
 
-    fn next_char(&mut self) -> Result<char, Error> {
+    fn next_char(&mut self) {
         self.cur += 1;
-        self.peek_char()
     }
 
     fn next_while<F>(&mut self, f: F)
         where F: Fn(char) -> bool
     {
         while !self.is_eof() && f(self.peek_char().unwrap()) {
-            let _ = self.next_char();
+            self.next_char();
         }
     }
 
