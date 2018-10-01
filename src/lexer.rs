@@ -39,6 +39,8 @@ impl Lexer {
         let result = match self.peek_char()? {
             '{' => Ok(Token::new_lbrace()),
             '}' => Ok(Token::new_rbrace()),
+            '(' => Ok(Token::new_lparen()),
+            ')' => Ok(Token::new_rparen()),
             '-' => self.read_arrow(),
             'a'...'z' => self.read_identifier_or_keyword(),
             // '\n' => 
@@ -159,6 +161,15 @@ mod tests {
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::LBRACE)));
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::RBRACE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_parens() {
+        let mut lexer = Lexer::new("  ( ) ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::LPAREN)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::RPAREN)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
