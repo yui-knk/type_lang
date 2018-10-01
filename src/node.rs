@@ -7,6 +7,7 @@ pub struct Node {
 pub enum Kind {
     NoneExpression,
     Expression(Box<Node>),
+    VarRef(String),
     Bool(bool),
 }
 
@@ -19,6 +20,10 @@ impl Node {
 
     pub fn new_expression(node: Node) -> Node {
         Node { kind: Expression(Box::new(node)) }
+    }
+
+    pub fn new_var_ref(str: String) -> Node {
+        Node { kind: VarRef(str) }
     }
 
     pub fn new_bool(bool: bool) -> Node {

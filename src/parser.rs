@@ -31,6 +31,7 @@ impl Parser {
         match token.kind {
             Kind::Keyword(Keyword::TRUE) => self.parse_bool(true),
             Kind::Keyword(Keyword::FALSE) => self.parse_bool(false),
+            Kind::Identifier(s) => self.parse_var_ref(s),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::UnexpectedToken)
         }
@@ -41,6 +42,15 @@ impl Parser {
 
         match token.kind {
             Kind::EOF => Ok(Node::new_expression(Node::new_bool(bool))),
+            _ => Err(Error::UnexpectedToken)
+        }
+    }
+
+    fn parse_var_ref(&mut self, str: String) -> Result<Node, Error> {
+        let token = self.next_token()?;
+
+        match token.kind {
+            Kind::EOF => Ok(Node::new_expression(Node::new_var_ref(str))),
             _ => Err(Error::UnexpectedToken)
         }
     }
@@ -92,6 +102,17 @@ mod tests {
         let mut parser = Parser::new(" true false ".to_string());
 
         assert_eq!(parser.parse(), Err(Error::UnexpectedToken));
+    }
+
+    #[test]
+    fn test_parse_var_ref() {
+        let mut parser = Parser::new(" x ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node{
+            kind: Kind::Expression(
+                Box::new(Node{ kind: Kind::VarRef("x".to_string()) })
+            )
+        }));
     }
 
     #[test]
