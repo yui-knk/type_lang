@@ -29,8 +29,7 @@ impl Parser {
 
     fn parse_program(&mut self) -> Result<Node, Error> {
         let node = match self.parse_expression() {
-            ok @ Ok(Node {kind: ::node::Kind::NoneExpression}) => return ok,
-            Ok(n) => Ok(n),
+            ok @ Ok(_) => ok,
             err @ Err(_) => return err
         };
 
