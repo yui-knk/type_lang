@@ -57,7 +57,6 @@ impl Evaluator {
             Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
             Kind::VarRef(..) => self.eval_var_ref(node),
-            _ => Err(Error::UnexpectedNode(format!("{:?}", node)))
         }
     }
 
@@ -110,14 +109,6 @@ impl Evaluator {
 
     fn eval_lambda(&self, node: Node) -> Result<Value, Error> {
         Ok(Value::new_lambda(node))
-    }
-
-    fn node_is_value(node: Node) -> bool {
-        match node.kind {
-            Kind::Lambda(..) => true,
-            Kind::Bool(..) => true,
-            _ => false
-        }
     }
 }
 
