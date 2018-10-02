@@ -1,5 +1,5 @@
 use node::{Node, Kind};
-use value::Value;
+use value::{Value, Kind as ValueKind};
 
 struct Env {
     // Mapping from variable to value.
@@ -16,7 +16,8 @@ pub struct Evaluator {
 #[derive(Debug, PartialEq)]
 pub enum Error {
     UnexpectedNode(String),
-    VariableNotFound(String)
+    VariableNotFound(String),
+    NotApplyable(String)
 }
 
 impl Env {
@@ -70,10 +71,13 @@ impl Evaluator {
         match node.kind {
             Kind::Apply(rec, arg) => {
                 let arg_val = self.eval(*arg)?;
-                // https://stackoverflow.com/questions/28466809/collaterally-moved-error-when-deconstructing-a-box-of-pairs
-                let rec_kind = rec.kind;
-
-                let (variable, body) = match rec_kind {
+                let rec_val = self.eval(*rec)?;
+                let rec_val_kind = rec_val.kind;
+                let rec_node = match rec_val_kind {
+                    ValueKind::Lambda(n) => n,
+                    _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", rec_val_kind)))
+                };
+                let (variable, body) = match rec_node.kind {
                     Kind::Lambda(v, b) => (v, b),
                     _ => return Err(Error::UnexpectedNode(error_message))
                 };
@@ -185,8 +189,13 @@ mod tests {
         let result = eval_string("(-> x { (-> x { x } false) } true)".to_string());
         assert_eq!(result, Ok(Value::new_false()));
 
-        // let result = eval_string("((-> x { x } -> y { y }) true)".to_string());
-        // assert_eq!(result, Ok(Value::new_true()));
+        let result = eval_string("((-> x { x } -> y { y }) true)".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
+
+        let result = eval_string("((-> x { x } -> y { y }) -> z { false })".to_string());
+        let node_false = Node::new_bool(false);
+        let lambda = Node::new_lambda("z".to_string(), node_false);
+        assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
 
     #[test]

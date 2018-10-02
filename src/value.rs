@@ -2,7 +2,7 @@ use node::{Node};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Value {
-    kind: Kind
+    pub kind: Kind
 }
 
 #[derive(Clone, Debug, PartialEq)]
