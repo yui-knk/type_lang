@@ -65,7 +65,7 @@ impl Evaluator {
     }
 
     fn eval_apply(&mut self, node: Node) -> Result<Value, Error> {
-        let error_message = format!("{:?}", node);
+        let error_message = format!("eval_apply {:?}", node);
 
         match node.kind {
             Kind::Apply(rec, arg) => {
@@ -95,7 +95,7 @@ impl Evaluator {
                     None => Err(Error::VariableNotFound(variable.clone()))
                 }
             },
-            _ => Err(Error::UnexpectedNode(format!("{:?}", node)))
+            _ => Err(Error::UnexpectedNode(format!("eval_var_ref {:?}", node)))
         }
     }
 
@@ -103,7 +103,7 @@ impl Evaluator {
         match node.kind {
             Kind::Bool(true)  => Ok(Value::new_true()),
             Kind::Bool(false) => Ok(Value::new_false()),
-            _ => Err(Error::UnexpectedNode(format!("{:?}", node)))
+            _ => Err(Error::UnexpectedNode(format!("eval_bool {:?}", node)))
         }
     }
 
