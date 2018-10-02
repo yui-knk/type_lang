@@ -28,13 +28,10 @@ impl Parser {
     }
 
     fn parse_program(&mut self) -> Result<Node, Error> {
-        let node = match self.parse_expression() {
-            ok @ Ok(_) => ok,
-            err @ Err(_) => return err
-        };
+        let node = self.parse_expression()?;
 
         self.expect_eof()?;
-        node
+        Ok(node)
     }
 
     fn parse_expression(&mut self) -> Result<Node, Error> {
