@@ -12,7 +12,7 @@ pub enum Error {
     UnknownToken,
     UnexpectedToken(String, Token), // expected, actual
     UnexpectedEOF,
-    NotSupported,
+    NotSupported(Token),
 }
 
 
@@ -44,7 +44,7 @@ impl Parser {
             Kind::Keyword(Keyword::ARROW) => self.parse_lambda(),
             Kind::Keyword(Keyword::LPAREN) => self.parse_apply(),
             Kind::EOF => Ok(Node::new_none_expression()),
-            _ => Err(Error::NotSupported)
+            _ => Err(Error::NotSupported(token))
         }
     }
 
