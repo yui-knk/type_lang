@@ -51,7 +51,7 @@ impl Evaluator {
         Evaluator { env: Env::new() }
     }
 
-    pub fn eval(&self, node: &Node) -> Result<Value, Error> {
+    pub fn eval(&self, node: Node) -> Result<Value, Error> {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
             Kind::Bool(_) => self.eval_bool(node),
@@ -60,11 +60,11 @@ impl Evaluator {
         }
     }
 
-    fn eval_none_expression(&self, node: &Node) -> Result<Value, Error> {
+    fn eval_none_expression(&self, node: Node) -> Result<Value, Error> {
         Ok(Value::new_none())
     }
 
-    fn eval_bool(&self, node: &Node) -> Result<Value, Error> {
+    fn eval_bool(&self, node: Node) -> Result<Value, Error> {
         match node.kind {
             Kind::Bool(true)  => Ok(Value::new_true()),
             Kind::Bool(false) => Ok(Value::new_false()),
@@ -72,11 +72,11 @@ impl Evaluator {
         }
     }
 
-    fn eval_lambda(&self, _node: &Node) -> Result<Value, Error> {
-        Ok(Value::new_lambda())
+    fn eval_lambda(&self, node: Node) -> Result<Value, Error> {
+        Ok(Value::new_lambda(node))
     }
 
-    fn node_is_value(node: &Node) -> bool {
+    fn node_is_value(node: Node) -> bool {
         match node.kind {
             Kind::Lambda(..) => true,
             Kind::Bool(..) => true,
@@ -115,12 +115,13 @@ mod tests {
     use super::*;
     use value::{Value};
     use parser::{Parser};
+    use node::{Node, Kind};
 
     fn eval_string(str: String) -> Result<Value, Error> {
         let mut parser = Parser::new(str);
-        let noed = parser.parse().unwrap();
+        let node = parser.parse().unwrap();
         let eval = Evaluator::new();
-        eval.eval(&noed)
+        eval.eval(node)
     }
 
     #[test]
@@ -140,7 +141,9 @@ mod tests {
     #[test]
     fn test_eval_lambda() {
         let result = eval_string("-> x { x }".to_string());
+        let var_ref = Node::new_var_ref("x".to_string());
+        let lambda = Node::new_lambda("x".to_string(), var_ref);
 
-        assert_eq!(result, Ok(Value::new_lambda()));
+        assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
 }

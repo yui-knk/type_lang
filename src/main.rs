@@ -21,7 +21,7 @@ fn run(string: String) {
         }
     };
 
-    let value = match eval.eval(&result) {
+    let value = match eval.eval(result) {
         Ok(v) => v,
         Err(e) => {
             eprintln!("error: Can not eval {:?}", e);

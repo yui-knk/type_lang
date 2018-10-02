@@ -1,3 +1,5 @@
+use node::{Node};
+
 #[derive(Debug, PartialEq)]
 pub struct Value {
     kind: Kind
@@ -8,7 +10,7 @@ pub enum Kind {
     None,
     True,
     False,
-    Lambda,
+    Lambda(Node),
 }
 
 use self::Kind::*;
@@ -26,7 +28,7 @@ impl Value {
         Value { kind: False }
     }
 
-    pub fn new_lambda() -> Value {
-        Value { kind: Lambda }
+    pub fn new_lambda(node: Node) -> Value {
+        Value { kind: Lambda(node) }
     }
 }
