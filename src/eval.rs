@@ -1,7 +1,18 @@
+use std::collections::HashMap;
+
 use node::{Node, Kind};
 use value::Value;
 
+struct Env {
+    // Mapping from variable to "value node"
+    // Use Vec as a stack
+    //
+    // TODO: Node may be shared multi lambda bodies?
+    stack: Vec<(String, Node)>
+}
+
 pub struct Evaluator {
+    env: Env,
 }
 
 #[derive(Debug, PartialEq)]
@@ -9,9 +20,35 @@ pub enum Error {
     UnexpectedNode(String),
 }
 
+impl Env {
+    fn new() -> Env {
+        Env { stack: Vec::new() }
+    }
+
+    fn push(&mut self, variable: String, node: Node) {
+        self.stack.push((variable, node));
+    }
+
+    fn pop(&mut self) {
+        if self.stack.pop().is_none() {
+            eprintln!("empty stack is popped.");
+        }
+    }
+
+    fn find_by_variable(&self, variable: &str) -> Option<&Node> {
+        for (str, node) in self.stack.iter().rev() {
+            if str == variable {
+                return Some(node);
+            }
+        }
+
+        None
+    }
+}
+
 impl Evaluator {
     pub fn new() -> Evaluator {
-        Evaluator {}
+        Evaluator { env: Env::new() }
     }
 
     pub fn eval(&self, node: &Node) -> Result<Value, Error> {
@@ -37,6 +74,39 @@ impl Evaluator {
 
     fn eval_lambda(&self, _node: &Node) -> Result<Value, Error> {
         Ok(Value::new_lambda())
+    }
+
+    fn node_is_value(node: &Node) -> bool {
+        match node.kind {
+            Kind::Lambda(..) => true,
+            Kind::Bool(..) => true,
+            _ => false
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests_env {
+    use super::*;
+    use node::{Node};
+
+    #[test]
+    fn test_find_by_variable() {
+        let mut env = Env::new();
+        env.push("x".to_string(), Node::new_bool(false));
+
+        assert_eq!(env.find_by_variable(&"y".to_string()), None);
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(&Node::new_bool(false)));
+
+        env.push("y".to_string(), Node::new_bool(true));
+        assert_eq!(env.find_by_variable(&"y".to_string()), Some(&Node::new_bool(true)));
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(&Node::new_bool(false)));
+
+        env.pop();
+        env.push("x".to_string(), Node::new_bool(true));
+        assert_eq!(env.find_by_variable(&"y".to_string()), None);
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(&Node::new_bool(true)));
+
     }
 }
 
