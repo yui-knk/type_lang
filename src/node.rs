@@ -1,9 +1,9 @@
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Node {
     pub kind: Kind,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     NoneExpression,
     VarRef(String),

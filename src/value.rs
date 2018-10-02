@@ -1,11 +1,11 @@
 use node::{Node};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Value {
     kind: Kind
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     None,
     True,

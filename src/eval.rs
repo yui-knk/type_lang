@@ -16,6 +16,7 @@ pub struct Evaluator {
 #[derive(Debug, PartialEq)]
 pub enum Error {
     UnexpectedNode(String),
+    VariableNotFound(String)
 }
 
 impl Env {
@@ -33,10 +34,10 @@ impl Env {
         }
     }
 
-    fn find_by_variable(&self, variable: &str) -> Option<&Value> {
+    fn find_by_variable(&self, variable: &str) -> Option<Value> {
         for (str, value) in self.stack.iter().rev() {
             if str == variable {
-                return Some(value);
+                return Some(value.clone());
             }
         }
 
@@ -55,6 +56,7 @@ impl Evaluator {
             Kind::Bool(_) => self.eval_bool(node),
             Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
+            Kind::VarRef(..) => self.eval_var_ref(node),
             _ => Err(Error::UnexpectedNode(format!("{:?}", node)))
         }
     }
@@ -83,6 +85,18 @@ impl Evaluator {
                 Ok(rec_val)
             },
             _ => Err(Error::UnexpectedNode(error_message))
+        }
+    }
+
+    fn eval_var_ref(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::VarRef(variable) => {
+                match self.env.find_by_variable(&variable) {
+                    Some(v) => Ok(v),
+                    None => Err(Error::VariableNotFound(variable.clone()))
+                }
+            },
+            _ => Err(Error::UnexpectedNode(format!("{:?}", node)))
         }
     }
 
@@ -118,16 +132,16 @@ mod tests_env {
         env.push("x".to_string(), Value::new_false());
 
         assert_eq!(env.find_by_variable(&"y".to_string()), None);
-        assert_eq!(env.find_by_variable(&"x".to_string()), Some(&Value::new_false()));
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Value::new_false()));
 
         env.push("y".to_string(), Value::new_true());
-        assert_eq!(env.find_by_variable(&"y".to_string()), Some(&Value::new_true()));
-        assert_eq!(env.find_by_variable(&"x".to_string()), Some(&Value::new_false()));
+        assert_eq!(env.find_by_variable(&"y".to_string()), Some(Value::new_true()));
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Value::new_false()));
 
         env.pop();
         env.push("x".to_string(), Value::new_true());
         assert_eq!(env.find_by_variable(&"y".to_string()), None);
-        assert_eq!(env.find_by_variable(&"x".to_string()), Some(&Value::new_true()));
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Value::new_true()));
 
     }
 }
