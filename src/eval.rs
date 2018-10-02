@@ -2,10 +2,10 @@ use node::{Node, Kind};
 use value::Value;
 
 struct Env {
-    // Mapping from variable to value
-    // Use Vec as a stack
+    // Mapping from variable to value.
+    // Use Vec as a stack.
     //
-    // TODO: Value may be shared multi lambda bodies?
+    // Value may be shared multi lambda bodies.
     stack: Vec<(String, Value)>
 }
 
