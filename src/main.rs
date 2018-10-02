@@ -22,9 +22,9 @@ fn run(string: String) {
     };
 
     let value = match eval.eval(&result) {
-        Some(v) => v,
-        None => {
-            eprintln!("error: Can not eval");
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("error: Can not eval {:?}", e);
             exit(1);
         }
     };
