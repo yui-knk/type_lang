@@ -12,7 +12,6 @@ impl Evaluator {
     pub fn eval(&self, node: &Node) -> Option<Value> {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
-            Kind::Expression(ref b) => self.eval(&b),
             Kind::Bool(_) => self.eval_bool(node),
             _ => None
         }

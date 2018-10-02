@@ -49,11 +49,11 @@ impl Parser {
     }
 
     fn parse_bool(&mut self, bool: bool) -> Result<Node, Error> {
-        Ok(Node::new_expression(Node::new_bool(bool)))
+        Ok(Node::new_bool(bool))
     }
 
     fn parse_var_ref(&mut self, str: String) -> Result<Node, Error> {
-        Ok(Node::new_expression(Node::new_var_ref(str)))
+        Ok(Node::new_var_ref(str))
     }
 
     // -> x { exp }
@@ -129,9 +129,7 @@ mod tests {
         let mut parser = Parser::new(" true ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node{
-            kind: Kind::Expression(
-                Box::new(Node{ kind: Kind::Bool(true) })
-            )
+            kind: Kind::Bool(true)
         }));
     }
 
@@ -140,9 +138,7 @@ mod tests {
         let mut parser = Parser::new(" false ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node{
-            kind: Kind::Expression(
-                Box::new(Node{ kind: Kind::Bool(false) })
-            )
+            kind: Kind::Bool(false)
         }));
     }
 
@@ -160,9 +156,7 @@ mod tests {
         let mut parser = Parser::new(" x ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node{
-            kind: Kind::Expression(
-                Box::new(Node{ kind: Kind::VarRef("x".to_string()) })
-            )
+            kind: Kind::VarRef("x".to_string())
         }));
     }
 
@@ -172,9 +166,7 @@ mod tests {
 
         assert_eq!(parser.parse(), Ok(Node
             { kind: Kind::Lambda("x".to_string(), Box::new(Node
-                { kind: Kind::Expression(
-                    Box::new(Node { kind: Kind::Bool(false) })
-                )}
+                { kind: Kind::Bool(false) }
             ))}
         ));
     }
@@ -185,8 +177,8 @@ mod tests {
 
         assert_eq!(parser.parse(), Ok(Node {
             kind: Kind::Apply(
-                Box::new(Node { kind: Kind::Expression(Box::new(Node { kind: Kind::VarRef("x".to_string()) })) }),
-                Box::new(Node { kind: Kind::Expression(Box::new(Node { kind: Kind::VarRef("y".to_string()) })) })
+                Box::new(Node { kind: Kind::VarRef("x".to_string()) }),
+                Box::new(Node { kind: Kind::VarRef("y".to_string()) })
             )
         }));
     }

@@ -6,7 +6,6 @@ pub struct Node {
 #[derive(Debug, PartialEq)]
 pub enum Kind {
     NoneExpression,
-    Expression(Box<Node>),
     VarRef(String),
     Lambda(String, Box<Node>), // variable, body
     Apply(Box<Node>, Box<Node>),
@@ -18,10 +17,6 @@ use self::Kind::*;
 impl Node {
     pub fn new_none_expression() -> Node {
         Node { kind: NoneExpression }
-    }
-
-    pub fn new_expression(node: Node) -> Node {
-        Node { kind: Expression(Box::new(node)) }
     }
 
     pub fn new_var_ref(str: String) -> Node {
