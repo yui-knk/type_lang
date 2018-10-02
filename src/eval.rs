@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use node::{Node, Kind};
 use value::Value;
 
@@ -60,7 +58,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_none_expression(&self, node: Node) -> Result<Value, Error> {
+    fn eval_none_expression(&self, _node: Node) -> Result<Value, Error> {
         Ok(Value::new_none())
     }
 
@@ -115,7 +113,7 @@ mod tests {
     use super::*;
     use value::{Value};
     use parser::{Parser};
-    use node::{Node, Kind};
+    use node::{Node};
 
     fn eval_string(str: String) -> Result<Value, Error> {
         let mut parser = Parser::new(str);
