@@ -9,6 +9,7 @@ pub enum Kind {
     Expression(Box<Node>),
     VarRef(String),
     Lambda(String, Box<Node>), // variable, body
+    Apply(Box<Node>, Box<Node>),
     Bool(bool),
 }
 
@@ -29,6 +30,10 @@ impl Node {
 
     pub fn new_lambda(var: String, node: Node) -> Node {
         Node { kind: Lambda(var, Box::new(node)) }
+    }
+
+    pub fn new_apply(node_1: Node, node_2: Node) -> Node {
+        Node { kind: Apply(Box::new(node_1), Box::new(node_2)) }
     }
 
     pub fn new_bool(bool: bool) -> Node {

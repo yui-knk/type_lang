@@ -42,6 +42,7 @@ impl Parser {
             Kind::Keyword(Keyword::FALSE) => self.parse_bool(false),
             Kind::Identifier(s) => self.parse_var_ref(s),
             Kind::Keyword(Keyword::ARROW) => self.parse_lambda(),
+            Kind::Keyword(Keyword::LPAREN) => self.parse_apply(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported)
         }
@@ -63,6 +64,15 @@ impl Parser {
         let _ = self.expect_keyword(Keyword::RBRACE)?;
 
         Ok(Node::new_lambda(var, node))
+    }
+
+    // "(" exp1 exp2 ")"
+    fn parse_apply(&mut self) -> Result<Node, Error> {
+        let node_1 = self.parse_expression()?;
+        let node_2 = self.parse_expression()?;
+        let _ = self.expect_keyword(Keyword::RPAREN)?;
+
+        Ok(Node::new_apply(node_1, node_2))
     }
 
     fn next_token(&mut self) -> Result<Token, Error> {
@@ -167,6 +177,18 @@ mod tests {
                 )}
             ))}
         ));
+    }
+
+    #[test]
+    fn test_parse_apply() {
+        let mut parser = Parser::new(" (x y) ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node {
+            kind: Kind::Apply(
+                Box::new(Node { kind: Kind::Expression(Box::new(Node { kind: Kind::VarRef("x".to_string()) })) }),
+                Box::new(Node { kind: Kind::Expression(Box::new(Node { kind: Kind::VarRef("y".to_string()) })) })
+            )
+        }));
     }
 
     #[test]
