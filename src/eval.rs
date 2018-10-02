@@ -173,4 +173,25 @@ mod tests {
 
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
+
+    #[test]
+    fn test_eval_appy() {
+        let result = eval_string("(-> x { x } false)".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+
+        let result = eval_string("(-> x { (-> x { x } x) } true)".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
+
+        let result = eval_string("(-> x { (-> x { x } false) } true)".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+
+        // let result = eval_string("((-> x { x } -> y { y }) true)".to_string());
+        // assert_eq!(result, Ok(Value::new_true()));
+    }
+
+    #[test]
+    fn test_eval_variable_not_found() {
+        let result = eval_string("(-> x { y } false)".to_string());
+        assert_eq!(result, Err(Error::VariableNotFound("y".to_string())));
+    }
 }
