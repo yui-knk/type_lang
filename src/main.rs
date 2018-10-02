@@ -12,7 +12,7 @@ use clap::{Arg, App};
 
 fn run(string: String) {
     let mut parser = Parser::new(string);
-    let eval = Evaluator::new();
+    let mut eval = Evaluator::new();
     let result = match parser.parse() {
         Ok(node) => node,
         Err(err) => {

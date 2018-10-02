@@ -49,10 +49,11 @@ impl Evaluator {
         Evaluator { env: Env::new() }
     }
 
-    pub fn eval(&self, node: Node) -> Result<Value, Error> {
+    pub fn eval(&mut self, node: Node) -> Result<Value, Error> {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
             Kind::Bool(_) => self.eval_bool(node),
+            Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
             _ => Err(Error::UnexpectedNode(format!("{:?}", node)))
         }
@@ -60,6 +61,29 @@ impl Evaluator {
 
     fn eval_none_expression(&self, _node: Node) -> Result<Value, Error> {
         Ok(Value::new_none())
+    }
+
+    fn eval_apply(&mut self, node: Node) -> Result<Value, Error> {
+        let error_message = format!("{:?}", node);
+
+        match node.kind {
+            Kind::Apply(rec, arg) => {
+                let arg_val = self.eval(*arg)?;
+                // https://stackoverflow.com/questions/28466809/collaterally-moved-error-when-deconstructing-a-box-of-pairs
+                let rec_kind = rec.kind;
+
+                let (variable, body) = match rec_kind {
+                    Kind::Lambda(v, b) => (v, b),
+                    _ => return Err(Error::UnexpectedNode(error_message))
+                };
+
+                self.env.push(variable, arg_val);
+                let rec_val = self.eval(*body)?;
+                self.env.pop();
+                Ok(rec_val)
+            },
+            _ => Err(Error::UnexpectedNode(error_message))
+        }
     }
 
     fn eval_bool(&self, node: Node) -> Result<Value, Error> {
@@ -118,7 +142,7 @@ mod tests {
     fn eval_string(str: String) -> Result<Value, Error> {
         let mut parser = Parser::new(str);
         let node = parser.parse().unwrap();
-        let eval = Evaluator::new();
+        let mut eval = Evaluator::new();
         eval.eval(node)
     }
 
