@@ -8,6 +8,7 @@ pub enum Kind {
     None,
     True,
     False,
+    Lambda,
 }
 
 use self::Kind::*;
@@ -23,5 +24,9 @@ impl Value {
 
     pub fn new_false() -> Value {
         Value { kind: False }
+    }
+
+    pub fn new_lambda() -> Value {
+        Value { kind: Lambda }
     }
 }

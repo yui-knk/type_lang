@@ -18,6 +18,7 @@ impl Evaluator {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
             Kind::Bool(_) => self.eval_bool(node),
+            Kind::Lambda(..) => self.eval_lambda(node),
             _ => Err(Error::UnexpectedNode(format!("{:?}", node)))
         }
     }
@@ -32,6 +33,10 @@ impl Evaluator {
             Kind::Bool(false) => Ok(Value::new_false()),
             _ => Err(Error::UnexpectedNode(format!("{:?}", node)))
         }
+    }
+
+    fn eval_lambda(&self, _node: &Node) -> Result<Value, Error> {
+        Ok(Value::new_lambda())
     }
 }
 
@@ -60,5 +65,12 @@ mod tests {
         let result = eval_string("true".to_string());
 
         assert_eq!(result, Ok(Value::new_true()));
+    }
+
+    #[test]
+    fn test_eval_lambda() {
+        let result = eval_string("-> x { x }".to_string());
+
+        assert_eq!(result, Ok(Value::new_lambda()));
     }
 }
