@@ -67,6 +67,8 @@ impl Parser {
     }
 
     // "(" exp1 exp2 ")"
+    //
+    // Use "(" as anchor to solve left recursion problem.
     fn parse_apply(&mut self) -> Result<Node, Error> {
         let node_1 = self.parse_expression()?;
         let node_2 = self.parse_expression()?;
