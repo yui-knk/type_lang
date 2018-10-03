@@ -248,6 +248,14 @@ mod tests {
     }
 
     #[test]
+    fn test_next_token_bool() {
+        let mut lexer = Lexer::new(" Bool ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::BOOL)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
     fn test_next_token_arrow() {
         let mut lexer = Lexer::new(" -> ".to_string());
 
