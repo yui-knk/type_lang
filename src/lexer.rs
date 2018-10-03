@@ -48,6 +48,7 @@ impl Lexer {
             ')' => self.read_rparen(),
             ':' => self.read_colon(),
             '-' => self.read_arrow(),
+            'B' => self.read_bool(),
             'a'...'z' => self.read_identifier_or_keyword(),
             // '\n' => 
             _ => Err(Error::UnknownToken(self.peek_char().unwrap().to_string()))
@@ -141,11 +142,28 @@ impl Lexer {
         Ok(Token::new_colon())
     }
 
+    fn read_bool(&mut self) -> Result<Token, Error> {
+        self.expect_next_char('o')?;
+        self.expect_next_char('o')?;
+        self.expect_next_char('l')?;
+
+        Ok(Token::new_bool())
+    }
+
     fn read_arrow(&mut self) -> Result<Token, Error> {
         self.next_char();
         if self.peek_char()? == '>' {
             self.next_char();
             Ok(Token::new_arrow())
+        } else {
+            Err(Error::UnknownToken(self.token_string_n(1).to_string()))
+        }
+    }
+
+    fn expect_next_char(&mut self, c: char) -> Result<(), Error> {
+        self.next_char();
+        if self.peek_char()? == c {
+            Ok(())
         } else {
             Err(Error::UnknownToken(self.token_string_n(1).to_string()))
         }

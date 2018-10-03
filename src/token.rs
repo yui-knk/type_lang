@@ -20,6 +20,7 @@ pub enum Keyword {
     RPAREN, // ')'
     COLON,  // ':'
     ARROW,  // '->'
+    BOOL,   // 'Bool' (type)
     // IF,
     // THEN,
     // ELSE,
@@ -58,6 +59,10 @@ impl Token {
 
     pub fn new_colon() -> Token {
         Token { kind: Keyword(Keyword::COLON) }
+    }
+
+    pub fn new_bool() -> Token {
+        Token { kind: Keyword(Keyword::BOOL) }
     }
 
     pub fn new_arrow() -> Token {
