@@ -151,13 +151,9 @@ impl Lexer {
     }
 
     fn read_arrow(&mut self) -> Result<Token, Error> {
+        self.expect_next_char('>')?;
         self.next_char();
-        if self.peek_char()? == '>' {
-            self.next_char();
-            Ok(Token::new_arrow())
-        } else {
-            Err(Error::UnknownToken(self.token_string_n(1).to_string()))
-        }
+        Ok(Token::new_arrow())
     }
 
     fn expect_next_char(&mut self, c: char) -> Result<(), Error> {
