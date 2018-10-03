@@ -171,7 +171,7 @@ mod tests {
 
     #[test]
     fn test_eval_lambda() {
-        let result = eval_string("-> x { x }".to_string());
+        let result = eval_string("-> x : Bool -> Bool { x }".to_string());
         let var_ref = Node::new_var_ref("x".to_string());
         let lambda = Node::new_lambda("x".to_string(), var_ref);
 
@@ -180,19 +180,19 @@ mod tests {
 
     #[test]
     fn test_eval_appy() {
-        let result = eval_string("(-> x { x } false)".to_string());
+        let result = eval_string("(-> x : Bool -> Bool { x } false)".to_string());
         assert_eq!(result, Ok(Value::new_false()));
 
-        let result = eval_string("(-> x { (-> x { x } x) } true)".to_string());
+        let result = eval_string("(-> x : Bool -> Bool { (-> x : Bool -> Bool { x } x) } true)".to_string());
         assert_eq!(result, Ok(Value::new_true()));
 
-        let result = eval_string("(-> x { (-> x { x } false) } true)".to_string());
+        let result = eval_string("(-> x : Bool -> Bool { (-> x : Bool -> Bool { x } false) } true)".to_string());
         assert_eq!(result, Ok(Value::new_false()));
 
-        let result = eval_string("((-> x { x } -> y { y }) true)".to_string());
+        let result = eval_string("((-> x : Bool -> Bool { x } -> y : Bool -> Bool { y }) true)".to_string());
         assert_eq!(result, Ok(Value::new_true()));
 
-        let result = eval_string("((-> x { x } -> y { y }) -> z { false })".to_string());
+        let result = eval_string("((-> x : Bool -> Bool { x } -> y : Bool -> Bool { y }) -> z : Bool -> Bool { false })".to_string());
         let node_false = Node::new_bool(false);
         let lambda = Node::new_lambda("z".to_string(), node_false);
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_eval_variable_not_found() {
-        let result = eval_string("(-> x { y } false)".to_string());
+        let result = eval_string("(-> x : Bool -> Bool { y } false)".to_string());
         assert_eq!(result, Err(Error::VariableNotFound("y".to_string())));
     }
 }

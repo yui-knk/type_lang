@@ -1,10 +1,14 @@
 use lexer;
 use node::{Node};
 use token::{Kind, Keyword, Token};
+use ty::Ty;
 
 #[derive(Debug)]
 pub struct Parser {
     lexer: lexer::Lexer,
+    // Buffer for once read tokens.
+    // Use Vec as a stack.
+    buf: Vec<Token>
 }
 
 #[derive(Debug, PartialEq)]
@@ -19,7 +23,8 @@ pub enum Error {
 impl Parser {
     pub fn new(source: String) -> Parser {
         Parser {
-            lexer: lexer::Lexer::new(source)
+            lexer: lexer::Lexer::new(source),
+            buf: Vec::new()
         }
     }
 
@@ -34,6 +39,11 @@ impl Parser {
         Ok(node)
     }
 
+    // There are 2 types of perse methods
+    // (1) First token has been already consumed when methods are called,
+    //     e.g. parse_bool, parse_var_ref etc.
+    // (2) First token has not been already consumed,
+    //     e.g. parse_type.
     fn parse_expression(&mut self) -> Result<Node, Error> {
         let token = self.next_token()?;
 
@@ -56,9 +66,11 @@ impl Parser {
         Ok(Node::new_var_ref(str))
     }
 
-    // -> x { exp }
+    // "->" x ":" arrow_type "{" exp "}"
     fn parse_lambda(&mut self) -> Result<Node, Error> {
         let var = self.expect_identifier()?;
+        let _ = self.expect_keyword(Keyword::COLON)?;
+        let ty = self.parse_type()?;
         let _ = self.expect_keyword(Keyword::LBRACE)?;
         let node = self.parse_expression()?;
         let _ = self.expect_keyword(Keyword::RBRACE)?;
@@ -77,7 +89,36 @@ impl Parser {
         Ok(Node::new_apply(node_1, node_2))
     }
 
+    // Bool
+    fn parse_atomic_type(&mut self) -> Result<Ty, Error> {
+        let _ = self.expect_keyword(Keyword::BOOL)?;
+
+        Ok(Ty::new_bool())
+    }
+
+    //   atomic_type "->" arrow_type
+    // | atomic_type
+    fn parse_type(&mut self) -> Result<Ty, Error> {
+        let ty1 = self.parse_atomic_type()?;
+        let token = self.next_token()?;
+
+        // Case: atomic_type "->" arrow_type
+        if token.has_keyword(&Keyword::ARROW) {
+            let ty2 = self.parse_type()?;
+            return Ok(Ty::new_arrow(ty1, ty2));
+        }
+
+        // Case: atomic_type
+        // In this case this method should consume only one token.
+        self.unget_token(token);
+        Ok(ty1)
+    }
+
     fn next_token(&mut self) -> Result<Token, Error> {
+        if !self.buf.is_empty() {
+            return Ok(self.pop_token());
+        }
+
         match self.lexer.next_token() {
             Ok(token) => Ok(token),
             Err(error) => Err(self.build_error(error))
@@ -117,6 +158,14 @@ impl Parser {
             Kind::EOF => Ok(()),
             _ => Err(Error::UnexpectedToken("EOF".to_string(), token))
         }
+    }
+
+    fn unget_token(&mut self, token: Token) {
+        self.buf.push(token);
+    }
+
+    fn pop_token(&mut self) -> Token {
+        self.buf.pop().expect("Can not pop from empty buf.")
     }
 }
 
@@ -164,7 +213,29 @@ mod tests {
 
     #[test]
     fn test_parse_lambda() {
-        let mut parser = Parser::new(" -> x { false } ".to_string());
+        let mut parser = Parser::new(" -> x : Bool -> Bool { false } ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Lambda("x".to_string(), Box::new(Node
+                { kind: Kind::Bool(false) }
+            ))}
+        ));
+    }
+
+    #[test]
+    fn test_parse_lambda_nested_arrow_type() {
+        let mut parser = Parser::new(" -> x : Bool -> Bool -> Bool { false } ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Lambda("x".to_string(), Box::new(Node
+                { kind: Kind::Bool(false) }
+            ))}
+        ));
+    }
+
+    #[test]
+    fn test_parse_lambda_not_arrow_type() {
+        let mut parser = Parser::new(" -> x : Bool { false } ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node
             { kind: Kind::Lambda("x".to_string(), Box::new(Node
@@ -187,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_parse_apply_2() {
-        let mut parser = Parser::new(" (-> x { x } false) ".to_string());
+        let mut parser = Parser::new(" (-> x : Bool -> Bool { x } false) ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node {
             kind: Kind::Apply(

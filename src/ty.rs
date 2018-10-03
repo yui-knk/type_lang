@@ -1,0 +1,22 @@
+#[derive(Debug, PartialEq)]
+pub struct Ty {
+    pub kind: Kind
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Kind {
+    Arrow(Box<Ty>, Box<Ty>), // e.g. Bool -> Bool
+    Bool
+}
+
+use self::Kind::*;
+
+impl Ty {
+    pub fn new_arrow(l: Ty, r: Ty) -> Ty {
+        Ty { kind: Arrow(Box::new(l), Box::new(r)) }
+    }
+
+    pub fn new_bool() -> Ty {
+        Ty { kind: Bool }
+    }
+}
