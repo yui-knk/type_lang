@@ -18,7 +18,8 @@ pub enum Keyword {
     RBRACE, // '}'
     LPAREN, // '('
     RPAREN, // ')'
-    ARROW, // '->'
+    COLON,  // ':'
+    ARROW,  // '->'
     // IF,
     // THEN,
     // ELSE,
@@ -53,6 +54,10 @@ impl Token {
 
     pub fn new_rparen() -> Token {
         Token { kind: Keyword(Keyword::RPAREN) }
+    }
+
+    pub fn new_colon() -> Token {
+        Token { kind: Keyword(Keyword::COLON) }
     }
 
     pub fn new_arrow() -> Token {

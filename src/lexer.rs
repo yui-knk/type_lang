@@ -46,6 +46,7 @@ impl Lexer {
             '}' => self.read_rbrace(),
             '(' => self.read_lparen(),
             ')' => self.read_rparen(),
+            ':' => self.read_colon(),
             '-' => self.read_arrow(),
             'a'...'z' => self.read_identifier_or_keyword(),
             // '\n' => 
@@ -135,6 +136,11 @@ impl Lexer {
         Ok(Token::new_rparen())
     }
 
+    fn read_colon(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_colon())
+    }
+
     fn read_arrow(&mut self) -> Result<Token, Error> {
         self.next_char();
         if self.peek_char()? == '>' {
@@ -215,6 +221,14 @@ mod tests {
         assert_eq!(lexer.next_token(), Ok(Token::new_identifier("x".to_string())));
         assert_eq!(lexer.next_token(), Ok(Token::new_identifier("y".to_string())));
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::RPAREN)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_colon() {
+        let mut lexer = Lexer::new(" : ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::COLON)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
