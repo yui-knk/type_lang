@@ -146,6 +146,7 @@ impl Lexer {
         self.expect_next_char('o')?;
         self.expect_next_char('o')?;
         self.expect_next_char('l')?;
+        self.next_char();
 
         Ok(Token::new_bool())
     }
