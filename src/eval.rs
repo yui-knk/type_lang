@@ -56,7 +56,8 @@ impl Evaluator {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
             Kind::Bool(_) => self.eval_bool(node),
-            Kind::Nat(..) => self.eval_nat(node),
+            Kind::Zero => self.eval_nat(node, 0),
+            Kind::Succ(_) => self.eval_nat(node, 0),
             Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
             Kind::VarRef(..) => self.eval_var_ref(node),
@@ -115,9 +116,10 @@ impl Evaluator {
         }
     }
 
-    fn eval_nat(&self, node: Node) -> Result<Value, Error> {
+    fn eval_nat(&self, node: Node, i: u32) -> Result<Value, Error> {
         match node.kind {
-            Kind::Nat(i)  => Ok(Value::new_nat(i)),
+            Kind::Zero => Ok(Value::new_nat(i)),
+            Kind::Succ(n) => self.eval_nat(*n, i + 1),
             _ => Err(Error::UnexpectedNode(format!("eval_nat {:?}", node)))
         }
     }

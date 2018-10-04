@@ -199,9 +199,7 @@ mod tests {
     fn test_parse_nat() {
         let mut parser = Parser::new(" 11 ".to_string());
 
-        assert_eq!(parser.parse(), Ok(Node{
-            kind: Kind::Nat(11)
-        }));
+        assert_eq!(parser.parse(), Ok(Node::new_nat(11)));
     }
 
     #[test]

@@ -12,7 +12,8 @@ pub enum Kind {
     Lambda(String, Box<Node>, Box<Ty>), // variable, body
     Apply(Box<Node>, Box<Node>),
     Bool(bool),
-    Nat(u32),
+    Zero, // Natural Number is Zero or Succ(Natural Number)
+    Succ(Box<Node>), // holds Zero or Succ(Natural Number)
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
 }
 
@@ -39,8 +40,15 @@ impl Node {
         Node { kind: Bool(bool) }
     }
 
-    pub fn new_nat(i: u32) -> Node {
-        Node { kind: Nat(i) }
+    pub fn new_nat(mut i: u32) -> Node {
+        let mut node = Node { kind: Zero };
+
+        while i > 0 {
+            node = Node { kind: Succ(Box::new(node)) };
+            i -= 1;
+        }
+
+        node
     }
 
     pub fn new_if(cond: Node, then_expr: Node, else_expr: Node) -> Node {

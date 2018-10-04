@@ -87,7 +87,8 @@ impl TypeChecker {
                 }
             },
             Kind::Bool(_) => Ok(Ty::new_bool()),
-            Kind::Nat(..) => Ok(Ty::new_nat()),
+            Kind::Zero => Ok(Ty::new_nat()),
+            Kind::Succ(..) => Ok(Ty::new_nat()),
             Kind::If(ref cond, ref then_expr, ref else_expr) => {
                 // cond should be Bool and then/else should have same type
                 let cond_type = self.type_of(cond)?;
