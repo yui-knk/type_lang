@@ -89,6 +89,15 @@ impl TypeChecker {
             Kind::Bool(_) => Ok(Ty::new_bool()),
             Kind::Zero => Ok(Ty::new_nat()),
             Kind::Succ(..) => Ok(Ty::new_nat()),
+            Kind::Iszero(ref operand) => {
+                let operand_type = self.type_of(operand)?;
+                if operand_type.kind != TyKind::Nat {
+                    return Err(Error::TypeMismatch(format!(
+                        "Condition type mismatch. {:?} is not Nat.", operand_type.kind)));
+                };
+
+                Ok(Ty::new_bool())
+            },
             Kind::If(ref cond, ref then_expr, ref else_expr) => {
                 // cond should be Bool and then/else should have same type
                 let cond_type = self.type_of(cond)?;
@@ -106,7 +115,7 @@ impl TypeChecker {
 
                 Ok(then_type)
             },
-            _ => panic!("")
+            // _ => panic!("")
         }
     }
 }
@@ -164,6 +173,15 @@ mod tests {
 
         let result = check_type_of_string("true".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
+    }
+
+    #[test]
+    fn test_check_iszero() {
+        let result = check_type_of_string("iszero 10".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("iszero false".to_string());
+        assert!(result.is_err());
     }
 
     #[test]
