@@ -7,6 +7,7 @@ pub struct Token {
 pub enum Kind {
     Keyword(Keyword),
     Identifier(String),
+    Nat(u32), // NaturalNumber
     EOF, // End of File
 }
 
@@ -63,6 +64,10 @@ impl Token {
 
     pub fn new_bool() -> Token {
         Token { kind: Keyword(Keyword::BOOL) }
+    }
+
+    pub fn new_nat(i: u32) -> Token {
+        Token { kind: Nat(i) }
     }
 
     pub fn new_if() -> Token {

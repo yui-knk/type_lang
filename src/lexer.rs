@@ -49,6 +49,7 @@ impl Lexer {
             ':' => self.read_colon(),
             '-' => self.read_arrow(),
             'B' => self.read_bool(),
+            '0'...'9' => self.read_nat(),
             'a'...'z' => self.read_identifier_or_keyword(),
             // '\n' => 
             _ => Err(Error::UnknownToken(self.peek_char().unwrap().to_string()))
@@ -106,6 +107,12 @@ impl Lexer {
 
     fn is_eof(&self) -> bool {
        self.cur >= self.source.len()
+    }
+
+    fn read_nat(&mut self) -> Result<Token, Error> {
+        self.next_while(|c| c.is_digit(10));
+
+        Ok(Token::new_nat(self.token_string().parse::<u32>().unwrap()))
     }
 
     fn read_identifier_or_keyword(&mut self) -> Result<Token, Error> {
@@ -184,6 +191,17 @@ impl Lexer {
 mod tests {
     use super::*;
     use token::{Token, Keyword};
+
+    #[test]
+    fn test_next_token_nat() {
+        let mut lexer = Lexer::new(" 10 ".to_string());
+        assert_eq!(lexer.next_token(), Ok(Token::new_nat(10)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+
+        let mut lexer = Lexer::new(" 09 ".to_string());
+        assert_eq!(lexer.next_token(), Ok(Token::new_nat(9)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
 
     #[test]
     fn test_next_token_true() {
