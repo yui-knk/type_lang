@@ -200,7 +200,16 @@ mod tests {
         let result = check_type_of_string(" if true then false else true".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
 
+        let result = check_type_of_string(" if true then 10 else 11".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
         let result = check_type_of_string(" if true then -> x : Bool { x } else true".to_string());
+        assert!(result.is_err());
+
+        let result = check_type_of_string(" if true then 10 else false".to_string());
+        assert!(result.is_err());
+
+        let result = check_type_of_string(" if 1 then 10 else 11".to_string());
         assert!(result.is_err());
     }
 
