@@ -87,7 +87,23 @@ impl TypeChecker {
                 }
             },
             Kind::Bool(_) => Ok(Ty::new_bool()),
-            _ => panic!("")
+            Kind::If(ref cond, ref then_expr, ref else_expr) => {
+                // cond should be Bool and then/else should have same type
+                let cond_type = self.type_of(cond)?;
+                if cond_type.kind != TyKind::Bool {
+                    return Err(Error::TypeMismatch(format!(
+                        "Condition type mismatch. {:?} is not Bool.", cond_type.kind)));
+                }
+                let then_type = self.type_of(then_expr)?;
+                let else_type = self.type_of(else_expr)?;
+
+                if then_type.kind != else_type.kind {
+                    return Err(Error::TypeMismatch(format!(
+                        "Type mismatch. THEN: {:?}, ELSE: {:?}.", then_type.kind, else_type.kind)));
+                }
+
+                Ok(then_type)
+            },
         }
     }
 }
@@ -169,6 +185,15 @@ mod tests {
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
         )));
+    }
+
+    #[test]
+    fn test_check_if_then_else() {
+        let result = check_type_of_string(" if true then false else true".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string(" if true then -> x : Bool { x } else true".to_string());
+        assert!(result.is_err());
     }
 
     #[test]
