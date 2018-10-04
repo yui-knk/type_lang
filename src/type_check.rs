@@ -118,3 +118,67 @@ mod tests_env {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use parser::{Parser};
+    use ty::Ty;
+
+    fn check_type_of_string(str: String) -> Result<Ty, Error> {
+        let mut parser = Parser::new(str);
+        let node = parser.parse().unwrap();
+        let mut type_checker = TypeChecker::new();
+        type_checker.check(&node)
+    }
+
+    #[test]
+    fn test_check_bool() {
+        let result = check_type_of_string("false".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("true".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+    }
+
+    #[test]
+    fn test_check_lambda() {
+        let result = check_type_of_string(" -> x : Bool { false } ".to_string());
+        assert_eq!(result, Ok(Ty::new_arrow(Ty::new_bool(), Ty::new_bool())));
+
+        let result = check_type_of_string("-> x : Bool -> Bool { x }".to_string());
+        assert_eq!(result, Ok(Ty::new_arrow(
+            Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
+            Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
+        )));
+    }
+
+    #[test]
+    fn test_check_apply() {
+        let result = check_type_of_string(" (-> x : Bool { false } true)".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string(" ( -> x : Bool { x } true )".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("(-> x : Bool -> Bool{ x } -> y : Bool { false } )".to_string());
+        assert_eq!(result, Ok(Ty::new_arrow(Ty::new_bool(), Ty::new_bool())));
+
+        let result = check_type_of_string("-> x : Bool -> Bool { (-> x : Bool -> Bool { x } x) }".to_string());
+        assert_eq!(result, Ok(Ty::new_arrow(
+            Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
+            Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
+        )));
+    }
+
+    #[test]
+    fn test_check_variable_not_found() {
+        let result = check_type_of_string("(-> x : Bool -> Bool { y } false)".to_string());
+        assert_eq!(result, Err(Error::VariableNotFound("y".to_string())));
+    }
+
+    #[test]
+    fn test_check_type_mismatch() {
+        let result = check_type_of_string("(false true)".to_string());
+        assert_eq!(result, Err(Error::TypeMismatch("Bool is not arrow type.".to_string())));
+    }
+}
