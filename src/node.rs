@@ -1,3 +1,5 @@
+use ty::Ty;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
     pub kind: Kind,
@@ -7,7 +9,7 @@ pub struct Node {
 pub enum Kind {
     NoneExpression,
     VarRef(String),
-    Lambda(String, Box<Node>), // variable, body
+    Lambda(String, Box<Node>, Box<Ty>), // variable, body
     Apply(Box<Node>, Box<Node>),
     Bool(bool),
 }
@@ -23,8 +25,8 @@ impl Node {
         Node { kind: VarRef(str) }
     }
 
-    pub fn new_lambda(var: String, node: Node) -> Node {
-        Node { kind: Lambda(var, Box::new(node)) }
+    pub fn new_lambda(var: String, node: Node, ty: Ty) -> Node {
+        Node { kind: Lambda(var, Box::new(node), Box::new(ty)) }
     }
 
     pub fn new_apply(node_1: Node, node_2: Node) -> Node {

@@ -67,6 +67,8 @@ impl Parser {
     }
 
     // "->" x ":" arrow_type "{" exp "}"
+    //
+    // arrow_type is a type of variable x, not a type of whole lambda.
     fn parse_lambda(&mut self) -> Result<Node, Error> {
         let var = self.expect_identifier()?;
         let _ = self.expect_keyword(Keyword::COLON)?;
@@ -75,7 +77,7 @@ impl Parser {
         let node = self.parse_expression()?;
         let _ = self.expect_keyword(Keyword::RBRACE)?;
 
-        Ok(Node::new_lambda(var, node))
+        Ok(Node::new_lambda(var, node, ty))
     }
 
     // "(" exp1 exp2 ")"
@@ -174,6 +176,7 @@ mod tests {
     use super::*;
     use node::{Node, Kind};
     use token::{Kind as TokenKind, Keyword, Token};
+    use ty::{Ty};
 
     #[test]
     fn test_parse_true() {
@@ -216,9 +219,11 @@ mod tests {
         let mut parser = Parser::new(" -> x : Bool -> Bool { false } ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node
-            { kind: Kind::Lambda("x".to_string(), Box::new(Node
-                { kind: Kind::Bool(false) }
-            ))}
+            { kind: Kind::Lambda(
+                "x".to_string(),
+                Box::new(Node { kind: Kind::Bool(false) }),
+                Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_bool()))
+            )}
         ));
     }
 
@@ -227,9 +232,11 @@ mod tests {
         let mut parser = Parser::new(" -> x : Bool -> Bool -> Bool { false } ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node
-            { kind: Kind::Lambda("x".to_string(), Box::new(Node
-                { kind: Kind::Bool(false) }
-            ))}
+            { kind: Kind::Lambda(
+                "x".to_string(),
+                Box::new(Node { kind: Kind::Bool(false) }),
+                Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_arrow(Ty::new_bool(), Ty::new_bool())))
+            )}
         ));
     }
 
@@ -238,9 +245,11 @@ mod tests {
         let mut parser = Parser::new(" -> x : Bool { false } ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node
-            { kind: Kind::Lambda("x".to_string(), Box::new(Node
-                { kind: Kind::Bool(false) }
-            ))}
+            { kind: Kind::Lambda(
+                "x".to_string(),
+                Box::new(Node{ kind: Kind::Bool(false) }),
+                Box::new(Ty::new_bool())
+            )}
         ));
     }
 
@@ -262,7 +271,11 @@ mod tests {
 
         assert_eq!(parser.parse(), Ok(Node {
             kind: Kind::Apply(
-                Box::new(Node { kind: Kind::Lambda("x".to_string(), Box::new(Node { kind: Kind::VarRef("x".to_string()) }))}),
+                Box::new(Node { kind: Kind::Lambda(
+                    "x".to_string(),
+                    Box::new(Node { kind: Kind::VarRef("x".to_string()) }),
+                    Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_bool()))
+                 )}),
                 Box::new(Node { kind: Kind::Bool(false) })
             )
         }));

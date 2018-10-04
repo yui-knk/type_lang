@@ -78,7 +78,7 @@ impl Evaluator {
                     _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", rec_val_kind)))
                 };
                 let (variable, body) = match rec_node.kind {
-                    Kind::Lambda(v, b) => (v, b),
+                    Kind::Lambda(v, b, _) => (v, b),
                     _ => return Err(Error::UnexpectedNode(error_message))
                 };
 
@@ -147,6 +147,7 @@ mod tests {
     use value::{Value};
     use parser::{Parser};
     use node::{Node};
+    use ty::{Ty};
 
     fn eval_string(str: String) -> Result<Value, Error> {
         let mut parser = Parser::new(str);
@@ -173,7 +174,8 @@ mod tests {
     fn test_eval_lambda() {
         let result = eval_string("-> x : Bool -> Bool { x }".to_string());
         let var_ref = Node::new_var_ref("x".to_string());
-        let lambda = Node::new_lambda("x".to_string(), var_ref);
+        let ty = Ty::new_arrow(Ty::new_bool(), Ty::new_bool());
+        let lambda = Node::new_lambda("x".to_string(), var_ref, ty);
 
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
@@ -194,7 +196,8 @@ mod tests {
 
         let result = eval_string("((-> x : Bool -> Bool { x } -> y : Bool -> Bool { y }) -> z : Bool -> Bool { false })".to_string());
         let node_false = Node::new_bool(false);
-        let lambda = Node::new_lambda("z".to_string(), node_false);
+        let ty = Ty::new_arrow(Ty::new_bool(), Ty::new_bool());
+        let lambda = Node::new_lambda("z".to_string(), node_false, ty);
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
 

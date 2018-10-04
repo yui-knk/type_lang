@@ -1,9 +1,9 @@
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Ty {
     pub kind: Kind
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     Arrow(Box<Ty>, Box<Ty>), // e.g. Bool -> Bool
     Bool
