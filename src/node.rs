@@ -12,6 +12,7 @@ pub enum Kind {
     Lambda(String, Box<Node>, Box<Ty>), // variable, body
     Apply(Box<Node>, Box<Node>),
     Bool(bool),
+    Nat(u32),
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
 }
 
@@ -36,6 +37,10 @@ impl Node {
 
     pub fn new_bool(bool: bool) -> Node {
         Node { kind: Bool(bool) }
+    }
+
+    pub fn new_nat(i: u32) -> Node {
+        Node { kind: Nat(i) }
     }
 
     pub fn new_if(cond: Node, then_expr: Node, else_expr: Node) -> Node {

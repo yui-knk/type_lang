@@ -50,6 +50,7 @@ impl Parser {
         match token.kind {
             Kind::Keyword(Keyword::TRUE) => self.parse_bool(true),
             Kind::Keyword(Keyword::FALSE) => self.parse_bool(false),
+            Kind::Nat(i) => self.parse_nat(i),
             Kind::Identifier(s) => self.parse_var_ref(s),
             Kind::Keyword(Keyword::ARROW) => self.parse_lambda(),
             Kind::Keyword(Keyword::LPAREN) => self.parse_apply(),
@@ -61,6 +62,10 @@ impl Parser {
 
     fn parse_bool(&mut self, bool: bool) -> Result<Node, Error> {
         Ok(Node::new_bool(bool))
+    }
+
+    fn parse_nat(&mut self, i: u32) -> Result<Node, Error> {
+        Ok(Node::new_nat(i))
     }
 
     fn parse_var_ref(&mut self, str: String) -> Result<Node, Error> {
@@ -189,6 +194,15 @@ mod tests {
     use node::{Node, Kind};
     use token::{Kind as TokenKind, Keyword, Token};
     use ty::{Ty};
+
+    #[test]
+    fn test_parse_nat() {
+        let mut parser = Parser::new(" 11 ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node{
+            kind: Kind::Nat(11)
+        }));
+    }
 
     #[test]
     fn test_parse_true() {
