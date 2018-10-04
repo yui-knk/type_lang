@@ -257,6 +257,21 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_succ() {
+        let result = eval_string("succ 0".to_string());
+        assert_eq!(result, Ok(Value::new_nat(1)));
+
+        let result = eval_string("succ 1".to_string());
+        assert_eq!(result, Ok(Value::new_nat(2)));
+
+        let result = eval_string("succ 2".to_string());
+        assert_eq!(result, Ok(Value::new_nat(3)));
+
+        let result = eval_string("succ succ 3".to_string());
+        assert_eq!(result, Ok(Value::new_nat(5)));
+    }
+
+    #[test]
     fn test_eval_pred() {
         let result = eval_string("pred 0".to_string());
         assert_eq!(result, Ok(Value::new_nat(0)));
