@@ -6,7 +6,8 @@ pub struct Ty {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     Arrow(Box<Ty>, Box<Ty>), // e.g. Bool -> Bool
-    Bool
+    Bool,
+    Nat // Natural Number
 }
 
 use self::Kind::*;
@@ -18,5 +19,9 @@ impl Ty {
 
     pub fn new_bool() -> Ty {
         Ty { kind: Bool }
+    }
+
+    pub fn new_nat() -> Ty {
+        Ty { kind: Nat }
     }
 }

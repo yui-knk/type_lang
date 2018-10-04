@@ -87,6 +87,7 @@ impl TypeChecker {
                 }
             },
             Kind::Bool(_) => Ok(Ty::new_bool()),
+            Kind::Nat(..) => Ok(Ty::new_nat()),
             Kind::If(ref cond, ref then_expr, ref else_expr) => {
                 // cond should be Bool and then/else should have same type
                 let cond_type = self.type_of(cond)?;
@@ -104,7 +105,7 @@ impl TypeChecker {
 
                 Ok(then_type)
             },
-            _ => panic!("")
+            // _ => panic!("")
         }
     }
 }
@@ -147,6 +148,12 @@ mod tests {
         let node = parser.parse().unwrap();
         let mut type_checker = TypeChecker::new();
         type_checker.check(&node)
+    }
+
+    #[test]
+    fn test_check_nat() {
+        let result = check_type_of_string("10".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
     }
 
     #[test]
