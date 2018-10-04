@@ -62,7 +62,8 @@ impl Evaluator {
             Kind::Lambda(..) => self.eval_lambda(node),
             Kind::VarRef(..) => self.eval_var_ref(node),
             Kind::If(..) => self.eval_if(node),
-            _ => panic!("")
+            Kind::Iszero(..) => self.eval_iszero(node),
+            // _ => panic!("")
         }
     }
 
@@ -126,6 +127,19 @@ impl Evaluator {
 
     fn eval_lambda(&self, node: Node) -> Result<Value, Error> {
         Ok(Value::new_lambda(node))
+    }
+
+    fn eval_iszero(&self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Iszero(n) => {
+                match n.kind {
+                    Kind::Zero => Ok(Value::new_true()),
+                    Kind::Succ(_) => Ok(Value::new_false()),
+                    _ => Err(Error::UnexpectedNode(format!("eval_iszero {:?}", n)))
+                }
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_iszero {:?}", node)))
+        }
     }
 
     fn eval_if(&mut self, node: Node) -> Result<Value, Error> {
@@ -209,6 +223,15 @@ mod tests {
     fn test_eval_nat() {
         let result = eval_string("10".to_string());
         assert_eq!(result, Ok(Value::new_nat(10)));
+    }
+
+    #[test]
+    fn test_eval_iszero() {
+        let result = eval_string("iszero 0".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
+
+        let result = eval_string("iszero 1".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
     }
 
     #[test]
