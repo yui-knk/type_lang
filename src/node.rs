@@ -12,6 +12,7 @@ pub enum Kind {
     Lambda(String, Box<Node>, Box<Ty>), // variable, body
     Apply(Box<Node>, Box<Node>),
     Bool(bool),
+    If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
 }
 
 use self::Kind::*;
@@ -35,6 +36,10 @@ impl Node {
 
     pub fn new_bool(bool: bool) -> Node {
         Node { kind: Bool(bool) }
+    }
+
+    pub fn new_if(cond: Node, then_expr: Node, else_expr: Node) -> Node {
+        Node { kind: If(Box::new(cond), Box::new(then_expr), Box::new(else_expr)) }
     }
 
     pub fn is_none_expression(&self) -> bool {

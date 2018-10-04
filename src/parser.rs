@@ -53,6 +53,7 @@ impl Parser {
             Kind::Identifier(s) => self.parse_var_ref(s),
             Kind::Keyword(Keyword::ARROW) => self.parse_lambda(),
             Kind::Keyword(Keyword::LPAREN) => self.parse_apply(),
+            Kind::Keyword(Keyword::IF) => self.parse_if(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -89,6 +90,17 @@ impl Parser {
         let _ = self.expect_keyword(Keyword::RPAREN)?;
 
         Ok(Node::new_apply(node_1, node_2))
+    }
+
+    // "if" cond "then" then_expr "else" else_expr
+    fn parse_if(&mut self) -> Result<Node, Error> {
+        let cond = self.parse_expression()?;
+        let _ = self.expect_keyword(Keyword::THEN)?;
+        let then_expr = self.parse_expression()?;
+        let _ = self.expect_keyword(Keyword::ELSE)?;
+        let else_expr = self.parse_expression()?;
+
+        Ok(Node::new_if(cond, then_expr, else_expr))
     }
 
     // Bool
@@ -279,6 +291,19 @@ mod tests {
                 Box::new(Node { kind: Kind::Bool(false) })
             )
         }));
+    }
+
+    #[test]
+    fn test_parse_if() {
+        let mut parser = Parser::new(" if true then false else true ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::If(
+                Box::new(Node { kind: Kind::Bool(true) }),
+                Box::new(Node { kind: Kind::Bool(false) }),
+                Box::new(Node { kind: Kind::Bool(true) })
+            )}
+        ));
     }
 
     #[test]

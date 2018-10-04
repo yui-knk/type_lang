@@ -58,6 +58,7 @@ impl Evaluator {
             Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
             Kind::VarRef(..) => self.eval_var_ref(node),
+            _ => panic!("")
         }
     }
 

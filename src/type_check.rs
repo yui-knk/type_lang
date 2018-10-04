@@ -87,6 +87,7 @@ impl TypeChecker {
                 }
             },
             Kind::Bool(_) => Ok(Ty::new_bool()),
+            _ => panic!("")
         }
     }
 }
