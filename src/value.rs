@@ -10,6 +10,7 @@ pub enum Kind {
     None,
     True,
     False,
+    Nat(u32),
     Lambda(Node),
 }
 
@@ -26,6 +27,10 @@ impl Value {
 
     pub fn new_false() -> Value {
         Value { kind: False }
+    }
+
+    pub fn new_nat(i: u32) -> Value {
+        Value { kind: Nat(i) }
     }
 
     pub fn new_lambda(node: Node) -> Value {

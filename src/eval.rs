@@ -56,11 +56,12 @@ impl Evaluator {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
             Kind::Bool(_) => self.eval_bool(node),
+            Kind::Nat(..) => self.eval_nat(node),
             Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
             Kind::VarRef(..) => self.eval_var_ref(node),
             Kind::If(..) => self.eval_if(node),
-            _ => panic!("")
+            // _ => panic!("")
         }
     }
 
@@ -111,6 +112,13 @@ impl Evaluator {
             Kind::Bool(true)  => Ok(Value::new_true()),
             Kind::Bool(false) => Ok(Value::new_false()),
             _ => Err(Error::UnexpectedNode(format!("eval_bool {:?}", node)))
+        }
+    }
+
+    fn eval_nat(&self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Nat(i)  => Ok(Value::new_nat(i)),
+            _ => Err(Error::UnexpectedNode(format!("eval_nat {:?}", node)))
         }
     }
 
@@ -193,6 +201,12 @@ mod tests {
         let result = eval_string("true".to_string());
 
         assert_eq!(result, Ok(Value::new_true()));
+    }
+
+    #[test]
+    fn test_eval_nat() {
+        let result = eval_string("10".to_string());
+        assert_eq!(result, Ok(Value::new_nat(10)));
     }
 
     #[test]
