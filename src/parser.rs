@@ -72,11 +72,11 @@ impl Parser {
     // arrow_type is a type of variable x, not a type of whole lambda.
     fn parse_lambda(&mut self) -> Result<Node, Error> {
         let var = self.expect_identifier()?;
-        let _ = self.expect_keyword(Keyword::COLON)?;
+        self.expect_keyword(Keyword::COLON)?;
         let ty = self.parse_type()?;
-        let _ = self.expect_keyword(Keyword::LBRACE)?;
+        self.expect_keyword(Keyword::LBRACE)?;
         let node = self.parse_expression()?;
-        let _ = self.expect_keyword(Keyword::RBRACE)?;
+        self.expect_keyword(Keyword::RBRACE)?;
 
         Ok(Node::new_lambda(var, node, ty))
     }
@@ -87,7 +87,7 @@ impl Parser {
     fn parse_apply(&mut self) -> Result<Node, Error> {
         let node_1 = self.parse_expression()?;
         let node_2 = self.parse_expression()?;
-        let _ = self.expect_keyword(Keyword::RPAREN)?;
+        self.expect_keyword(Keyword::RPAREN)?;
 
         Ok(Node::new_apply(node_1, node_2))
     }
@@ -95,9 +95,9 @@ impl Parser {
     // "if" cond "then" then_expr "else" else_expr
     fn parse_if(&mut self) -> Result<Node, Error> {
         let cond = self.parse_expression()?;
-        let _ = self.expect_keyword(Keyword::THEN)?;
+        self.expect_keyword(Keyword::THEN)?;
         let then_expr = self.parse_expression()?;
-        let _ = self.expect_keyword(Keyword::ELSE)?;
+        self.expect_keyword(Keyword::ELSE)?;
         let else_expr = self.parse_expression()?;
 
         Ok(Node::new_if(cond, then_expr, else_expr))
@@ -105,7 +105,7 @@ impl Parser {
 
     // Bool
     fn parse_atomic_type(&mut self) -> Result<Ty, Error> {
-        let _ = self.expect_keyword(Keyword::BOOL)?;
+        self.expect_keyword(Keyword::BOOL)?;
 
         Ok(Ty::new_bool())
     }
@@ -146,11 +146,11 @@ impl Parser {
         }
     }
 
-    fn expect_keyword(&mut self, keyword: Keyword) -> Result<Token, Error> {
+    fn expect_keyword(&mut self, keyword: Keyword) -> Result<(), Error> {
         let token = self.next_token()?;
 
         if token.has_keyword(&keyword) {
-            Ok(token)
+            Ok(())
         } else {
             Err(Error::UnexpectedToken(format!("{:?}", keyword), token))
         }
