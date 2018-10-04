@@ -204,6 +204,14 @@ mod tests {
     }
 
     #[test]
+    fn test_next_token_iszero() {
+        let mut lexer = Lexer::new(" iszero ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::ISZERO)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
     fn test_next_token_true() {
         let mut lexer = Lexer::new(" true ".to_string());
 

@@ -25,6 +25,7 @@ pub enum Keyword {
     IF,
     THEN,
     ELSE,
+    ISZERO, // iszero (function)
 }
 
 use self::Kind::*;
@@ -82,6 +83,10 @@ impl Token {
         Token { kind: Keyword(Keyword::ELSE) }
     }
 
+    pub fn new_iszero() -> Token {
+        Token { kind: Keyword(Keyword::ISZERO) }
+    }
+
     pub fn new_arrow() -> Token {
         Token { kind: Keyword(Keyword::ARROW) }
     }
@@ -101,6 +106,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "if" => Some(Keyword::IF),
         "then" => Some(Keyword::THEN),
         "else" => Some(Keyword::ELSE),
+        "iszero" => Some(Keyword::ISZERO),
         _ => None
     }
 }
