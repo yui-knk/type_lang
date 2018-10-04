@@ -106,7 +106,7 @@ impl TypeChecker {
 
                 Ok(then_type)
             },
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 }

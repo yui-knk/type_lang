@@ -55,6 +55,7 @@ impl Parser {
             Kind::Keyword(Keyword::ARROW) => self.parse_lambda(),
             Kind::Keyword(Keyword::LPAREN) => self.parse_apply(),
             Kind::Keyword(Keyword::IF) => self.parse_if(),
+            Kind::Keyword(Keyword::ISZERO) => self.parse_iszero(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -66,6 +67,12 @@ impl Parser {
 
     fn parse_nat(&mut self, i: u32) -> Result<Node, Error> {
         Ok(Node::new_nat(i))
+    }
+
+    // "iszero" exp
+    fn parse_iszero(&mut self) -> Result<Node, Error> {
+        let node = self.parse_expression()?;
+        Ok(Node::new_iszero(node))
     }
 
     fn parse_var_ref(&mut self, str: String) -> Result<Node, Error> {
@@ -200,6 +207,13 @@ mod tests {
         let mut parser = Parser::new(" 11 ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node::new_nat(11)));
+    }
+
+    #[test]
+    fn test_parse_iszero() {
+        let mut parser = Parser::new(" iszero 10".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node::new_iszero(Node::new_nat(10))));
     }
 
     #[test]

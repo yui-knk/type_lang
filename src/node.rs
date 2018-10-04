@@ -14,6 +14,7 @@ pub enum Kind {
     Bool(bool),
     Zero, // Natural Number is Zero or Succ(Natural Number)
     Succ(Box<Node>), // holds Zero or Succ(Natural Number)
+    Iszero(Box<Node>), // operand
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
 }
 
@@ -34,6 +35,10 @@ impl Node {
 
     pub fn new_apply(node_1: Node, node_2: Node) -> Node {
         Node { kind: Apply(Box::new(node_1), Box::new(node_2)) }
+    }
+
+    pub fn new_iszero(node: Node) -> Node {
+        Node { kind: Iszero(Box::new(node)) }
     }
 
     pub fn new_bool(bool: bool) -> Node {
