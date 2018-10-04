@@ -21,9 +21,9 @@ pub enum Keyword {
     COLON,  // ':'
     ARROW,  // '->'
     BOOL,   // 'Bool' (type)
-    // IF,
-    // THEN,
-    // ELSE,
+    IF,
+    THEN,
+    ELSE,
 }
 
 use self::Kind::*;
@@ -65,6 +65,18 @@ impl Token {
         Token { kind: Keyword(Keyword::BOOL) }
     }
 
+    pub fn new_if() -> Token {
+        Token { kind: Keyword(Keyword::IF) }
+    }
+
+    pub fn new_then() -> Token {
+        Token { kind: Keyword(Keyword::THEN) }
+    }
+
+    pub fn new_else() -> Token {
+        Token { kind: Keyword(Keyword::ELSE) }
+    }
+
     pub fn new_arrow() -> Token {
         Token { kind: Keyword(Keyword::ARROW) }
     }
@@ -81,6 +93,9 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
     match s {
         "true" => Some(Keyword::TRUE),
         "false" => Some(Keyword::FALSE),
+        "if" => Some(Keyword::IF),
+        "then" => Some(Keyword::THEN),
+        "else" => Some(Keyword::ELSE),
         _ => None
     }
 }

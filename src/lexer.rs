@@ -211,6 +211,16 @@ mod tests {
     }
 
     #[test]
+    fn test_next_token_if_then_else() {
+        let mut lexer = Lexer::new(" if then else ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::IF)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::THEN)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::ELSE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
     fn test_next_token_braces() {
         let mut lexer = Lexer::new("  { } ".to_string());
 
