@@ -56,6 +56,8 @@ impl Parser {
             Kind::Keyword(Keyword::LPAREN) => self.parse_apply(),
             Kind::Keyword(Keyword::IF) => self.parse_if(),
             Kind::Keyword(Keyword::ISZERO) => self.parse_iszero(),
+            Kind::Keyword(Keyword::SUCC) => self.parse_succ(),
+            Kind::Keyword(Keyword::PRED) => self.parse_pred(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -73,6 +75,18 @@ impl Parser {
     fn parse_iszero(&mut self) -> Result<Node, Error> {
         let node = self.parse_expression()?;
         Ok(Node::new_iszero(node))
+    }
+
+    // "succ" exp
+    fn parse_succ(&mut self) -> Result<Node, Error> {
+        let node = self.parse_expression()?;
+        Ok(Node::new_succ(node))
+    }
+
+    // "pred" exp
+    fn parse_pred(&mut self) -> Result<Node, Error> {
+        let node = self.parse_expression()?;
+        Ok(Node::new_pred(node))
     }
 
     fn parse_var_ref(&mut self, str: String) -> Result<Node, Error> {
@@ -214,6 +228,24 @@ mod tests {
         let mut parser = Parser::new(" iszero 10".to_string());
 
         assert_eq!(parser.parse(), Ok(Node::new_iszero(Node::new_nat(10))));
+    }
+
+    #[test]
+    fn test_parse_pred() {
+        let mut parser = Parser::new(" pred 10".to_string());
+        assert_eq!(parser.parse(), Ok(Node::new_pred(Node::new_nat(10))));
+
+        let mut parser = Parser::new(" pred false".to_string());
+        assert_eq!(parser.parse(), Ok(Node::new_pred(Node::new_bool(false))));
+    }
+
+    #[test]
+    fn test_parse_succ() {
+        let mut parser = Parser::new(" succ 10".to_string());
+        assert_eq!(parser.parse(), Ok(Node::new_nat(11)));
+
+        let mut parser = Parser::new(" succ false".to_string());
+        assert_eq!(parser.parse(), Ok(Node::new_succ(Node::new_bool(false))));
     }
 
     #[test]

@@ -88,7 +88,24 @@ impl TypeChecker {
             },
             Kind::Bool(_) => Ok(Ty::new_bool()),
             Kind::Zero => Ok(Ty::new_nat()),
-            Kind::Succ(..) => Ok(Ty::new_nat()),
+            Kind::Succ(ref operand) => {
+                let operand_type = self.type_of(operand)?;
+                if operand_type.kind != TyKind::Nat {
+                    return Err(Error::TypeMismatch(format!(
+                        "Condition type mismatch. {:?} is not Nat.", operand_type.kind)));
+                };
+
+                Ok(Ty::new_nat())
+            },
+            Kind::Pred(ref operand) => {
+                let operand_type = self.type_of(operand)?;
+                if operand_type.kind != TyKind::Nat {
+                    return Err(Error::TypeMismatch(format!(
+                        "Condition type mismatch. {:?} is not Nat.", operand_type.kind)));
+                };
+
+                Ok(Ty::new_nat())
+            },
             Kind::Iszero(ref operand) => {
                 let operand_type = self.type_of(operand)?;
                 if operand_type.kind != TyKind::Nat {
@@ -181,6 +198,24 @@ mod tests {
         assert_eq!(result, Ok(Ty::new_bool()));
 
         let result = check_type_of_string("iszero false".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_succ() {
+        let result = check_type_of_string("succ 10".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
+        let result = check_type_of_string("succ false".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_pred() {
+        let result = check_type_of_string("pred 10".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
+        let result = check_type_of_string("pred false".to_string());
         assert!(result.is_err());
     }
 

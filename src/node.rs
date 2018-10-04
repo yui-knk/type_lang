@@ -14,6 +14,7 @@ pub enum Kind {
     Bool(bool),
     Zero, // Natural Number is Zero or Succ(Natural Number)
     Succ(Box<Node>), // holds Zero or Succ(Natural Number)
+    Pred(Box<Node>), // holds Zero or Succ(Natural Number)
     Iszero(Box<Node>), // operand
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
 }
@@ -39,6 +40,14 @@ impl Node {
 
     pub fn new_iszero(node: Node) -> Node {
         Node { kind: Iszero(Box::new(node)) }
+    }
+
+    pub fn new_succ(node: Node) -> Node {
+        Node { kind: Succ(Box::new(node)) }
+    }
+
+    pub fn new_pred(node: Node) -> Node {
+        Node { kind: Pred(Box::new(node)) }
     }
 
     pub fn new_bool(bool: bool) -> Node {

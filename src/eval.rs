@@ -58,6 +58,7 @@ impl Evaluator {
             Kind::Bool(_) => self.eval_bool(node),
             Kind::Zero => self.eval_nat(node, 0),
             Kind::Succ(_) => self.eval_nat(node, 0),
+            Kind::Pred(_) => self.eval_pred(node),
             Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
             Kind::VarRef(..) => self.eval_var_ref(node),
@@ -122,6 +123,27 @@ impl Evaluator {
             Kind::Zero => Ok(Value::new_nat(i)),
             Kind::Succ(n) => self.eval_nat(*n, i + 1),
             _ => Err(Error::UnexpectedNode(format!("eval_nat {:?}", node)))
+        }
+    }
+
+    fn eval_pred(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Pred(n) => {
+                let n_val = self.eval(*n)?;
+
+                match n_val.kind {
+                    ValueKind::Nat(i) => {
+                        let j = if i > 0 {
+                            i - 1
+                        } else {
+                            0
+                        };
+                        Ok(Value::new_nat(j))
+                    },
+                    _ => Err(Error::UnexpectedValue(format!("eval_pred {:?}", n_val)))
+                }
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_pred {:?}", node)))
         }
     }
 
@@ -232,6 +254,21 @@ mod tests {
 
         let result = eval_string("iszero 1".to_string());
         assert_eq!(result, Ok(Value::new_false()));
+    }
+
+    #[test]
+    fn test_eval_pred() {
+        let result = eval_string("pred 0".to_string());
+        assert_eq!(result, Ok(Value::new_nat(0)));
+
+        let result = eval_string("pred 1".to_string());
+        assert_eq!(result, Ok(Value::new_nat(0)));
+
+        let result = eval_string("pred 2".to_string());
+        assert_eq!(result, Ok(Value::new_nat(1)));
+
+        let result = eval_string("pred pred 3".to_string());
+        assert_eq!(result, Ok(Value::new_nat(1)));
     }
 
     #[test]
