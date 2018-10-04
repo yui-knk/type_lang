@@ -17,7 +17,8 @@ pub struct Evaluator {
 pub enum Error {
     UnexpectedNode(String),
     VariableNotFound(String),
-    NotApplyable(String)
+    NotApplyable(String),
+    UnexpectedValue(String)
 }
 
 impl Env {
@@ -58,7 +59,7 @@ impl Evaluator {
             Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
             Kind::VarRef(..) => self.eval_var_ref(node),
-            _ => panic!("")
+            Kind::If(..) => self.eval_if(node),
         }
     }
 
@@ -114,6 +115,25 @@ impl Evaluator {
 
     fn eval_lambda(&self, node: Node) -> Result<Value, Error> {
         Ok(Value::new_lambda(node))
+    }
+
+    fn eval_if(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::If(cond, then_expr, else_expr) => {
+                let cond_val = self.eval(*cond)?;
+
+                match cond_val.kind {
+                    ValueKind::True => {
+                        self.eval(*then_expr)
+                    },
+                    ValueKind::False => {
+                        self.eval(*else_expr)
+                    },
+                    _ => Err(Error::UnexpectedValue(format!("eval_if {:?}", cond_val)))
+                }
+            }
+            _ => Err(Error::UnexpectedNode(format!("eval_if {:?}", node)))
+        }
     }
 }
 
@@ -204,6 +224,15 @@ mod tests {
         let ty = Ty::new_bool();
         let lambda = Node::new_lambda("y".to_string(), node_false, ty);
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
+    }
+
+    #[test]
+    fn test_eval_if() {
+        let result = eval_string("if true then false else true".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+
+        let result = eval_string("if false then false else true".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
     }
 
     // TODO: type_check returns `VariableNotFound("y")` error
