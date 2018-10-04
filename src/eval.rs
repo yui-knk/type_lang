@@ -56,8 +56,8 @@ impl Evaluator {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
             Kind::Bool(_) => self.eval_bool(node),
-            Kind::Zero => self.eval_nat(node, 0),
-            Kind::Succ(_) => self.eval_nat(node, 0),
+            Kind::Zero => self.eval_zero(node),
+            Kind::Succ(_) => self.eval_succ(node),
             Kind::Pred(_) => self.eval_pred(node),
             Kind::Apply(..) => self.eval_apply(node),
             Kind::Lambda(..) => self.eval_lambda(node),
@@ -118,11 +118,26 @@ impl Evaluator {
         }
     }
 
-    fn eval_nat(&self, node: Node, i: u32) -> Result<Value, Error> {
+    fn eval_zero(&self, node: Node) -> Result<Value, Error> {
         match node.kind {
-            Kind::Zero => Ok(Value::new_nat(i)),
-            Kind::Succ(n) => self.eval_nat(*n, i + 1),
-            _ => Err(Error::UnexpectedNode(format!("eval_nat {:?}", node)))
+            Kind::Zero => Ok(Value::new_nat(0)),
+            _ => Err(Error::UnexpectedNode(format!("eval_zero {:?}", node)))
+        }
+    }
+
+    fn eval_succ(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Succ(n) => {
+                let n_val = self.eval(*n)?;
+
+                match n_val.kind {
+                    ValueKind::Nat(i) => {
+                        Ok(Value::new_nat(i + 1))
+                    },
+                    _ => Err(Error::UnexpectedValue(format!("eval_succ {:?}", n_val)))
+                }
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_succ {:?}", node)))
         }
     }
 
@@ -284,6 +299,18 @@ mod tests {
 
         let result = eval_string("pred pred 3".to_string());
         assert_eq!(result, Ok(Value::new_nat(1)));
+    }
+
+    #[test]
+    fn test_eval_succ_pred() {
+        let result = eval_string("succ pred 0".to_string());
+        assert_eq!(result, Ok(Value::new_nat(1)));
+
+        let result = eval_string("pred succ 0".to_string());
+        assert_eq!(result, Ok(Value::new_nat(0)));
+
+        let result = eval_string("succ pred pred succ succ pred 3".to_string());
+        assert_eq!(result, Ok(Value::new_nat(3)));
     }
 
     #[test]
