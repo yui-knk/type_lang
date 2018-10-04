@@ -26,6 +26,8 @@ pub enum Keyword {
     THEN,
     ELSE,
     ISZERO, // iszero (function)
+    SUCC, // succ (function)
+    PRED, // pred (function)
 }
 
 use self::Kind::*;
@@ -91,6 +93,14 @@ impl Token {
         Token { kind: Keyword(Keyword::ARROW) }
     }
 
+    pub fn new_succ() -> Token {
+        Token { kind: Keyword(Keyword::SUCC) }
+    }
+
+    pub fn new_pred() -> Token {
+        Token { kind: Keyword(Keyword::PRED) }
+    }
+
     pub fn has_keyword(&self, keyword: &Keyword) -> bool {
         match self.kind {
             Kind::Keyword(ref key) if key == keyword => true,
@@ -107,6 +117,8 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "then" => Some(Keyword::THEN),
         "else" => Some(Keyword::ELSE),
         "iszero" => Some(Keyword::ISZERO),
+        "succ" => Some(Keyword::SUCC),
+        "pred" => Some(Keyword::PRED),
         _ => None
     }
 }

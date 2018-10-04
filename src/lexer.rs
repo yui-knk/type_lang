@@ -247,6 +247,22 @@ mod tests {
     }
 
     #[test]
+    fn test_next_token_succ() {
+        let mut lexer = Lexer::new(" succ ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::SUCC)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_pred() {
+        let mut lexer = Lexer::new(" pred ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::PRED)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
     fn test_next_token_braces() {
         let mut lexer = Lexer::new("  { } ".to_string());
 
