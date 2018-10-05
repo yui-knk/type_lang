@@ -7,7 +7,7 @@ pub struct Lexer {
     tok: usize,
     cur: usize,
     debug: bool,
-    // lineno: usize,
+    lineno: usize,
 }
 
 
@@ -28,6 +28,7 @@ impl Lexer {
             source: source,
             tok: 0,
             cur: 0,
+            lineno: 1,
             debug: false
         }
     }
@@ -51,7 +52,10 @@ impl Lexer {
             'B' => self.read_bool(),
             '0'...'9' => self.read_nat(),
             'a'...'z' => self.read_identifier_or_keyword(),
-            // '\n' => 
+            '\n' => {
+                self.next_line();
+                self.next_token()
+            },
             _ => Err(Error::UnknownToken(self.peek_char().unwrap().to_string()))
         };
 
@@ -59,6 +63,11 @@ impl Lexer {
 
         self.token_flush();
         result
+    }
+
+    fn next_line(&mut self)  {
+        self.skip_char();
+        self.lineno += 1;
     }
 
     fn skip_whitespace(&mut self) {
@@ -243,6 +252,23 @@ mod tests {
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::IF)));
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::THEN)));
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::ELSE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_new_lines() {
+        let mut lexer = Lexer::new(r#"
+            if false
+            then false
+            else true
+        "#.to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::IF)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::FALSE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::THEN)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::FALSE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::ELSE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::TRUE)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 

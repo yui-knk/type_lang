@@ -352,6 +352,13 @@ mod tests {
 
         let result = eval_string("if false then false else true".to_string());
         assert_eq!(result, Ok(Value::new_true()));
+
+        let result = eval_string(r#"
+            if false
+            then false
+            else true
+        "#.to_string());
+        assert_eq!(result, Ok(Value::new_true()));
     }
 
     // TODO: type_check returns `VariableNotFound("y")` error
