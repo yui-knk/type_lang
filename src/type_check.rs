@@ -20,7 +20,8 @@ pub struct TypeChecker {
 #[derive(Debug, PartialEq)]
 pub enum Error {
     TypeMismatch(String),
-    VariableNotFound(String)
+    VariableNotFound(String),
+    IndexError(String)
 }
 
 impl Context {
@@ -144,7 +145,27 @@ impl TypeChecker {
 
                 Ok(Ty::new_record(fields_type))
             },
-            _ => panic!("")
+            Kind::Projection(ref node, ref label) => {
+                match node.kind {
+                    Kind::Record(ref recode) => {
+                        let value = recode.get(&label.clone());
+
+                        // Maybe this includes semantic analysis
+                        match value {
+                            Some(value_node) => {
+                                self.type_of(value_node)
+                            },
+                            None => Err(Error::IndexError(format!(
+                                            "{} is not valid index.", label)))
+                        }
+                    },
+                    _ => {
+                        Err(Error::TypeMismatch(format!(
+                            "Record type mismatch. {:?} is not Record.", node.kind)))
+                    }
+                }
+            },
+            // _ => panic!("")
         }
     }
 }
@@ -254,6 +275,21 @@ mod tests {
         fields_type.insert("2".to_string(), Box::new(Ty::new_bool()));
 
         assert_eq!(result, Ok(Ty::new_record(fields_type)));
+    }
+
+    #[test]
+    fn test_check_projection() {
+        let result = check_type_of_string(" {10, a=false, true}.0 ".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
+        let result = check_type_of_string(" {10, a=false, true}.a ".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string(" {10, a=false, true}.3 ".to_string());
+        assert_eq!(result, Err(Error::IndexError("3 is not valid index.".to_string())));
+
+        let result = check_type_of_string(" {10, a=false, true}.b ".to_string());
+        assert_eq!(result, Err(Error::IndexError("b is not valid index.".to_string())));
     }
 
     #[test]
