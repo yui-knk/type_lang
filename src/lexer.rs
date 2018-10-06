@@ -50,6 +50,7 @@ impl Lexer {
             ':' => self.read_colon(),
             '=' => self.read_eq(),
             ',' => self.read_comma(),
+            '.' => self.read_dot(),
             '-' => self.read_arrow(),
             'B' => self.read_bool(),
             '0'...'9' => self.read_nat(),
@@ -168,6 +169,11 @@ impl Lexer {
     fn read_comma(&mut self) -> Result<Token, Error> {
         self.next_char();
         Ok(Token::new_comma())
+    }
+
+    fn read_dot(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_dot())
     }
 
     fn read_bool(&mut self) -> Result<Token, Error> {
@@ -350,6 +356,14 @@ mod tests {
         let mut lexer = Lexer::new(" , ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::COMMA)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_dot() {
+        let mut lexer = Lexer::new(" . ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::DOT)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 

@@ -30,6 +30,7 @@ pub enum Keyword {
     PRED, // pred (function)
     EQ, // '='
     COMMA, // ','
+    DOT, // '.'
 }
 
 use self::Kind::*;
@@ -109,6 +110,10 @@ impl Token {
 
     pub fn new_comma() -> Token {
         Token { kind: Keyword(Keyword::COMMA) }
+    }
+
+    pub fn new_dot() -> Token {
+        Token { kind: Keyword(Keyword::DOT) }
     }
 
     pub fn has_keyword(&self, keyword: &Keyword) -> bool {
