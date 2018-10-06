@@ -64,7 +64,7 @@ impl Evaluator {
             Kind::VarRef(..) => self.eval_var_ref(node),
             Kind::If(..) => self.eval_if(node),
             Kind::Iszero(..) => self.eval_iszero(node),
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 

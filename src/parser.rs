@@ -58,6 +58,7 @@ impl Parser {
             Kind::Keyword(Keyword::ISZERO) => self.parse_iszero(),
             Kind::Keyword(Keyword::SUCC) => self.parse_succ(),
             Kind::Keyword(Keyword::PRED) => self.parse_pred(),
+            Kind::Keyword(Keyword::LBRACE) => self.parse_record(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -116,6 +117,57 @@ impl Parser {
         self.expect_keyword(Keyword::RPAREN)?;
 
         Ok(Node::new_apply(node_1, node_2))
+    }
+
+    // "{" fields "}"
+    fn parse_record(&mut self) -> Result<Node, Error> {
+        let fields = self.parse_fields()?;
+        self.expect_keyword(Keyword::RBRACE)?;
+
+        Ok(Node::new_record(fields))
+    }
+
+    // field ("," field) ...
+    fn parse_fields(&mut self) -> Result<Vec<(Option<String>, Node)>, Error> {
+        let mut v = Vec::new();
+        let field = self.parse_field()?;
+        v.push(field);
+
+        let mut token = self.next_token()?;
+
+        while token.has_keyword(&Keyword::COMMA) {
+            let field2 = self.parse_field()?;
+            v.push(field2);
+            // Next token of field should be "," or "}", so
+            // we can call next_token method here.
+            token = self.next_token()?;
+        }
+        //
+        self.unget_token(token);
+
+        Ok(v)
+    }
+
+    //   label "=" expr
+    // | expr
+    //
+    // label is:
+    //      identifier
+    fn parse_field(&mut self) -> Result<(Option<String>, Node), Error> {
+        let label_or_expr = self.next_token()?;
+
+        match label_or_expr.kind {
+            Kind::Identifier(s) => {
+                self.expect_keyword(Keyword::EQ)?;
+                let node = self.parse_expression()?;
+                Ok((Some(s), node))
+            },
+            _ => {
+                self.unget_token(label_or_expr);
+                let node = self.parse_expression()?;
+                Ok((None, node))
+            }
+        }
     }
 
     // "if" cond "then" then_expr "else" else_expr
@@ -348,6 +400,22 @@ mod tests {
                  )}),
                 Box::new(Node { kind: Kind::Bool(false) })
             )
+        }));
+    }
+
+    #[test]
+    fn test_parse_record() {
+        use std::collections::HashMap;
+
+        let mut parser = Parser::new(" {10, a=false, true} ".to_string());
+        let mut fields = HashMap::new();
+
+        fields.insert("0".to_string(), Box::new(Node::new_nat(10)));
+        fields.insert("a".to_string(), Box::new(Node::new_bool(false)));
+        fields.insert("2".to_string(), Box::new(Node::new_bool(true)));
+
+        assert_eq!(parser.parse(), Ok(Node {
+            kind: Kind::Record(fields)
         }));
     }
 

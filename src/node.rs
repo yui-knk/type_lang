@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use ty::Ty;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -16,6 +18,7 @@ pub enum Kind {
     Succ(Box<Node>), // holds Zero or Succ(Natural Number)
     Pred(Box<Node>), // holds Zero or Succ(Natural Number)
     Iszero(Box<Node>), // operand
+    Record(HashMap<String, Box<Node>>), // from label to value node
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
 }
 
@@ -67,6 +70,23 @@ impl Node {
 
     pub fn new_if(cond: Node, then_expr: Node, else_expr: Node) -> Node {
         Node { kind: If(Box::new(cond), Box::new(then_expr), Box::new(else_expr)) }
+    }
+
+    pub fn new_record(fields: Vec<(Option<String>, Node)>) -> Node {
+        let mut count = 0;
+        let mut map = HashMap::new();
+
+        for (name, node) in fields {
+            let label = match name {
+                Some(s) => s,
+                None => count.to_string(),
+            };
+
+            map.insert(label, Box::new(node));
+            count += 1;
+        }
+
+        Node { kind: Record(map) }
     }
 
     pub fn is_none_expression(&self) -> bool {
