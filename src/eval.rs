@@ -20,7 +20,8 @@ pub enum Error {
     UnexpectedNode(String),
     VariableNotFound(String),
     NotApplyable(String),
-    UnexpectedValue(String)
+    UnexpectedValue(String),
+    IndexError(String),
 }
 
 impl Env {
@@ -67,7 +68,8 @@ impl Evaluator {
             Kind::If(..) => self.eval_if(node),
             Kind::Iszero(..) => self.eval_iszero(node),
             Kind::Record(..) => self.eval_record(node),
-            _ => panic!("")
+            Kind::Projection(..) => self.eval_projection(node),
+            // _ => panic!("")
         }
     }
 
@@ -170,6 +172,11 @@ impl Evaluator {
     }
 
     fn eval_record(&mut self, node: Node) -> Result<Value, Error> {
+        let field_values = self._eval_record(node)?;
+        Ok(Value::new_record(field_values))
+    }
+
+    fn _eval_record(&mut self, node: Node) -> Result<HashMap<String, Box<Value>>, Error> {
         match node.kind {
             Kind::Record(fields) => {
                 let mut field_values = HashMap::new();
@@ -179,9 +186,24 @@ impl Evaluator {
                     field_values.insert(s.clone(), Box::new(field_value));
                 }
 
-                Ok(Value::new_record(field_values))
+                Ok(field_values)
             },
             _ => Err(Error::UnexpectedNode(format!("eval_record {:?}", node)))
+        }
+    }
+
+    fn eval_projection(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Projection(node, label) => {
+                let records = self._eval_record(*node)?;
+                let value = records.get(&label);
+
+                match value {
+                    Some(v) => Ok(*v.clone()),
+                    None => Err(Error::IndexError(format!("eval_projection {:?}", label)))
+                }
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_projection {:?}", node)))
         }
     }
 
@@ -344,6 +366,15 @@ mod tests {
         fields.insert("2".to_string(), Box::new(Value::new_true()));
 
         assert_eq!(result, Ok(Value::new_record(fields)));
+    }
+
+    #[test]
+    fn test_eval_projection() {
+        let result = eval_string(" {10, a=false, true}.a ".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+
+        let result = eval_string(" {10, a=false, true}.0 ".to_string());
+        assert_eq!(result, Ok(Value::new_nat(10)));
     }
 
     #[test]
