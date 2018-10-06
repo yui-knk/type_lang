@@ -48,6 +48,8 @@ impl Lexer {
             '(' => self.read_lparen(),
             ')' => self.read_rparen(),
             ':' => self.read_colon(),
+            '=' => self.read_eq(),
+            ',' => self.read_comma(),
             '-' => self.read_arrow(),
             'B' => self.read_bool(),
             '0'...'9' => self.read_nat(),
@@ -156,6 +158,16 @@ impl Lexer {
     fn read_colon(&mut self) -> Result<Token, Error> {
         self.next_char();
         Ok(Token::new_colon())
+    }
+
+    fn read_eq(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_eq())
+    }
+
+    fn read_comma(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_comma())
     }
 
     fn read_bool(&mut self) -> Result<Token, Error> {
@@ -322,6 +334,22 @@ mod tests {
         let mut lexer = Lexer::new(" : ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::COLON)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_eq() {
+        let mut lexer = Lexer::new(" = ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::EQ)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_comma() {
+        let mut lexer = Lexer::new(" , ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::COMMA)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
