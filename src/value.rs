@@ -12,6 +12,7 @@ pub enum Kind {
     None,
     True,
     False,
+    Unit,
     Nat(u32),
     Lambda(Node),
     Record(HashMap<String, Box<Value>>),
@@ -30,6 +31,10 @@ impl Value {
 
     pub fn new_false() -> Value {
         Value { kind: False }
+    }
+
+    pub fn new_unit() -> Value {
+        Value { kind: Unit }
     }
 
     pub fn new_nat(i: u32) -> Value {

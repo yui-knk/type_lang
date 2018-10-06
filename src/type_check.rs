@@ -91,6 +91,7 @@ impl TypeChecker {
             },
             Kind::Bool(_) => Ok(Ty::new_bool()),
             Kind::Zero => Ok(Ty::new_nat()),
+            Kind::Unit => Ok(Ty::new_unit()),
             Kind::Succ(ref operand) => {
                 let operand_type = self.type_of(operand)?;
                 if operand_type.kind != TyKind::Nat {
@@ -209,6 +210,12 @@ mod tests {
         let node = parser.parse().unwrap();
         let mut type_checker = TypeChecker::new();
         type_checker.check(&node)
+    }
+
+    #[test]
+    fn test_check_unit() {
+        let result = check_type_of_string("unit".to_string());
+        assert_eq!(result, Ok(Ty::new_unit()));
     }
 
     #[test]

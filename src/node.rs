@@ -21,6 +21,7 @@ pub enum Kind {
     Record(HashMap<String, Box<Node>>), // from label to value node
     Projection(Box<Node>, String), // Record, label
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
+    Unit,
 }
 
 use self::Kind::*;
@@ -56,6 +57,10 @@ impl Node {
 
     pub fn new_bool(bool: bool) -> Node {
         Node { kind: Bool(bool) }
+    }
+
+    pub fn new_unit() -> Node {
+        Node { kind: Unit }
     }
 
     pub fn new_nat(mut i: u32) -> Node {

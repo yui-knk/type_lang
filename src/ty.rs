@@ -11,6 +11,7 @@ pub enum Kind {
     Bool,
     Nat, // Natural Number
     Record(HashMap<String, Box<Ty>>),
+    Unit, // the only value of Unit type is "unit"
 }
 
 use self::Kind::*;
@@ -26,6 +27,10 @@ impl Ty {
 
     pub fn new_nat() -> Ty {
         Ty { kind: Nat }
+    }
+
+    pub fn new_unit() -> Ty {
+        Ty { kind: Unit }
     }
 
     pub fn new_record(fields: HashMap<String, Box<Ty>>) -> Ty {

@@ -69,6 +69,7 @@ impl Evaluator {
             Kind::Iszero(..) => self.eval_iszero(node),
             Kind::Record(..) => self.eval_record(node),
             Kind::Projection(..) => self.eval_projection(node),
+            Kind::Unit => self.eval_unit(node),
             // _ => panic!("")
         }
     }
@@ -112,6 +113,13 @@ impl Evaluator {
                 }
             },
             _ => Err(Error::UnexpectedNode(format!("eval_var_ref {:?}", node)))
+        }
+    }
+
+    fn eval_unit(&self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Unit => Ok(Value::new_unit()),
+            _ => Err(Error::UnexpectedNode(format!("eval_unit {:?}", node)))
         }
     }
 
@@ -295,6 +303,13 @@ mod tests {
         let result = eval_string("true".to_string());
 
         assert_eq!(result, Ok(Value::new_true()));
+    }
+
+    #[test]
+    fn test_eval_unit() {
+        let result = eval_string("unit".to_string());
+
+        assert_eq!(result, Ok(Value::new_unit()));
     }
 
     #[test]

@@ -59,6 +59,7 @@ impl Parser {
             Kind::Keyword(Keyword::SUCC) => self.parse_succ(),
             Kind::Keyword(Keyword::PRED) => self.parse_pred(),
             Kind::Keyword(Keyword::LBRACE) => self.parse_record_or_projection(),
+            Kind::Keyword(Keyword::UNIT) => self.parse_unit(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -70,6 +71,11 @@ impl Parser {
 
     fn parse_nat(&mut self, i: u32) -> Result<Node, Error> {
         Ok(Node::new_nat(i))
+    }
+
+    // "unit"
+    fn parse_unit(&mut self) -> Result<Node, Error> {
+        Ok(Node::new_unit())
     }
 
     // "iszero" exp
