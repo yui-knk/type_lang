@@ -121,6 +121,10 @@ impl Parser {
 
     //   "{" fields "}"
     // | record "." label
+    //
+    // label is:
+    //        identifier
+    //      | nat
     fn parse_record_or_projection(&mut self) -> Result<Node, Error> {
         let fields = self.parse_fields()?;
         self.expect_keyword(Keyword::RBRACE)?;
@@ -130,8 +134,13 @@ impl Parser {
         match token.kind {
             // projection
             Kind::Keyword(Keyword::DOT) => {
-                let label = self.expect_identifier()?;
-                Ok(Node::new_projection(record, label))
+                let token2 = self.next_token()?;
+
+                match token2.kind {
+                    Kind::Identifier(s) => Ok(Node::new_projection(record, s)),
+                    Kind::Nat(i) => Ok(Node::new_projection(record, i.to_string())),
+                    _ => Err(Error::UnexpectedToken("Identifier or Nat as label".to_string(), token))
+                }
             },
             // record
             _ => {
@@ -452,19 +461,19 @@ mod tests {
         }));
 
 
-        // let mut parser = Parser::new(" {10, a=false, true}.2 ".to_string());
-        // let mut fields = HashMap::new();
+        let mut parser = Parser::new(" {10, a=false, true}.2 ".to_string());
+        let mut fields = HashMap::new();
 
-        // fields.insert("0".to_string(), Box::new(Node::new_nat(10)));
-        // fields.insert("a".to_string(), Box::new(Node::new_bool(false)));
-        // fields.insert("2".to_string(), Box::new(Node::new_bool(true)));
+        fields.insert("0".to_string(), Box::new(Node::new_nat(10)));
+        fields.insert("a".to_string(), Box::new(Node::new_bool(false)));
+        fields.insert("2".to_string(), Box::new(Node::new_bool(true)));
 
-        // assert_eq!(parser.parse(), Ok(Node {
-        //     kind: Kind::Projection(
-        //         Box::new(Node { kind: Kind::Record(fields) }),
-        //         "2".to_string()
-        //     )
-        // }));
+        assert_eq!(parser.parse(), Ok(Node {
+            kind: Kind::Projection(
+                Box::new(Node { kind: Kind::Record(fields) }),
+                "2".to_string()
+            )
+        }));
     }
 
     #[test]
