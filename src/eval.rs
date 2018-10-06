@@ -426,10 +426,10 @@ mod tests {
 
     #[test]
     fn test_eval_unit_derived_form() {
-        let result = eval_string("1; false".to_string());
+        let result = eval_string("unit; false".to_string());
         assert_eq!(result, Ok(Value::new_false()));
 
-        let result = eval_string("1; false; 2".to_string());
+        let result = eval_string("unit; unit; 2".to_string());
         assert_eq!(result, Ok(Value::new_nat(2)));
     }
 
