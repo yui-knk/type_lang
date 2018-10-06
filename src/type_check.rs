@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use node::{Node, Kind};
 use ty::{Ty, Kind as TyKind};
 
@@ -132,7 +134,17 @@ impl TypeChecker {
 
                 Ok(then_type)
             },
-            _ => panic!("")
+            Kind::Record(ref fields) => {
+                let mut fields_type = HashMap::new();
+
+                for (s, node) in fields {
+                    let node_type = self.type_of(node)?;
+                    fields_type.insert(s.clone(), Box::new(node_type));
+                }
+
+                Ok(Ty::new_record(fields_type))
+            },
+            // _ => panic!("")
         }
     }
 }
@@ -166,6 +178,7 @@ mod tests_env {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use super::*;
     use parser::{Parser};
     use ty::Ty;
@@ -229,6 +242,18 @@ mod tests {
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
         )));
+    }
+
+    #[test]
+    fn test_check_record() {
+        let result = check_type_of_string(" {10, a=false, true} ".to_string());
+        let mut fields_type = HashMap::new();
+
+        fields_type.insert("0".to_string(), Box::new(Ty::new_nat()));
+        fields_type.insert("a".to_string(), Box::new(Ty::new_bool()));
+        fields_type.insert("2".to_string(), Box::new(Ty::new_bool()));
+
+        assert_eq!(result, Ok(Ty::new_record(fields_type)));
     }
 
     #[test]

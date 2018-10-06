@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ty {
     pub kind: Kind
@@ -7,7 +9,8 @@ pub struct Ty {
 pub enum Kind {
     Arrow(Box<Ty>, Box<Ty>), // e.g. Bool -> Bool
     Bool,
-    Nat // Natural Number
+    Nat, // Natural Number
+    Record(HashMap<String, Box<Ty>>),
 }
 
 use self::Kind::*;
@@ -23,5 +26,9 @@ impl Ty {
 
     pub fn new_nat() -> Ty {
         Ty { kind: Nat }
+    }
+
+    pub fn new_record(fields: HashMap<String, Box<Ty>>) -> Ty {
+        Ty { kind: Record(fields) }
     }
 }
