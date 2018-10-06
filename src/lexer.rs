@@ -48,6 +48,7 @@ impl Lexer {
             '(' => self.read_lparen(),
             ')' => self.read_rparen(),
             ':' => self.read_colon(),
+            ';' => self.read_semicolon(),
             '=' => self.read_eq(),
             ',' => self.read_comma(),
             '.' => self.read_dot(),
@@ -159,6 +160,11 @@ impl Lexer {
     fn read_colon(&mut self) -> Result<Token, Error> {
         self.next_char();
         Ok(Token::new_colon())
+    }
+
+    fn read_semicolon(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_semicolon())
     }
 
     fn read_eq(&mut self) -> Result<Token, Error> {
@@ -348,6 +354,14 @@ mod tests {
         let mut lexer = Lexer::new(" : ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::COLON)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_semicolon() {
+        let mut lexer = Lexer::new(" ; ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::SEMICOLON)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 

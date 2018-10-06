@@ -32,6 +32,7 @@ pub enum Keyword {
     COMMA, // ','
     DOT, // '.'
     UNIT, // 'unit' (value of Unit type)
+    SEMICOLON, // ';'
 }
 
 use self::Kind::*;
@@ -115,6 +116,10 @@ impl Token {
 
     pub fn new_comma() -> Token {
         Token { kind: Keyword(Keyword::COMMA) }
+    }
+
+    pub fn new_semicolon() -> Token {
+        Token { kind: Keyword(Keyword::SEMICOLON) }
     }
 
     pub fn new_dot() -> Token {
