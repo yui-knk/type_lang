@@ -33,9 +33,41 @@ impl Parser {
     }
 
     fn parse_program(&mut self) -> Result<Node, Error> {
-        let node = self.parse_expression()?;
+        let node = self.parse_expressions()?;
 
         self.expect_eof()?;
+        Ok(node)
+    }
+
+    fn parse_expressions(&mut self) -> Result<Node, Error> {
+        let mut node = self.parse_expression()?;
+
+        if node.is_none_expression() {
+            return Ok(node);
+        };
+
+        let mut token = self.next_token()?;
+
+        while token.has_keyword(&Keyword::SEMICOLON) {
+            let node2 = self.parse_expression()?;
+            // This is for derived form of sequencing.
+            //
+            //   "expr1; expr2" is "(-> _: Unit { t2 } t1)"
+            //
+            // Variable name should not be a free variable of t2.
+            // "_" is not identifier in our lexer, so "_" is not a free variable of t2.
+            node = Node::new_apply(
+                Node::new_lambda("_".to_string(), node2, Ty::new_unit()),
+                node
+            );
+
+            // Next token of field should be ";" or EOF, so
+            // we can call next_token method here.
+            token = self.next_token()?;
+        }
+        //
+        self.unget_token(token);
+
         Ok(node)
     }
 
@@ -493,6 +525,22 @@ mod tests {
                 Box::new(Node { kind: Kind::Bool(true) })
             )}
         ));
+    }
+
+    #[test]
+    fn test_parse_unit_derived_form() {
+        let mut parser = Parser::new("1; false".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node {
+            kind: Kind::Apply(
+                Box::new(Node { kind: Kind::Lambda(
+                    "_".to_string(),
+                    Box::new(Node { kind: Kind::Bool(false) }),
+                    Box::new(Ty::new_unit())
+                 )}),
+                Box::new(Node::new_nat(1))
+            )
+        }));
     }
 
     #[test]

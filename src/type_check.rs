@@ -83,6 +83,14 @@ impl TypeChecker {
                 match rec_type.kind {
                     TyKind::Arrow(ty1, ty2) => {
                         if *ty1 == arg_type { return Ok(*ty2); }
+                        // This is for derived form of sequencing.
+                        //
+                        // TODO:
+                        //     This may be same with (T-SEQ) in P.91.
+                        //     Derived form would not introduce new complexity into
+                        //     internal implementaion (e.g. type checking)
+                        //     Is current implementaion really a derived form?
+                        if ty1.kind == TyKind::Unit { return Ok(*ty2); }
                         return Err(Error::TypeMismatch(format!(
                             "Argument type mismatch. expected: {:?}, actual: {:?}", ty1.kind, arg_type.kind)));
                     },

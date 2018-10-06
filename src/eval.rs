@@ -425,6 +425,15 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_unit_derived_form() {
+        let result = eval_string("1; false".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+
+        let result = eval_string("1; false; 2".to_string());
+        assert_eq!(result, Ok(Value::new_nat(2)));
+    }
+
+    #[test]
     fn test_eval_if() {
         let result = eval_string("if true then false else true".to_string());
         assert_eq!(result, Ok(Value::new_false()));
