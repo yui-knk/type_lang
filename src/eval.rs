@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use node::{Node, Kind};
 use value::{Value, Kind as ValueKind};
 
@@ -64,7 +66,8 @@ impl Evaluator {
             Kind::VarRef(..) => self.eval_var_ref(node),
             Kind::If(..) => self.eval_if(node),
             Kind::Iszero(..) => self.eval_iszero(node),
-            _ => panic!("")
+            Kind::Record(..) => self.eval_record(node),
+            // _ => panic!("")
         }
     }
 
@@ -164,6 +167,22 @@ impl Evaluator {
 
     fn eval_lambda(&self, node: Node) -> Result<Value, Error> {
         Ok(Value::new_lambda(node))
+    }
+
+    fn eval_record(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Record(fields) => {
+                let mut field_values = HashMap::new();
+
+                for (s, node) in fields {
+                    let field_value = self.eval(*node)?;
+                    field_values.insert(s.clone(), Box::new(field_value));
+                }
+
+                Ok(Value::new_record(field_values))
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_record {:?}", node)))
+        }
     }
 
     fn eval_iszero(&self, node: Node) -> Result<Value, Error> {
@@ -311,6 +330,20 @@ mod tests {
 
         let result = eval_string("succ pred pred succ succ pred 3".to_string());
         assert_eq!(result, Ok(Value::new_nat(3)));
+    }
+
+    #[test]
+    fn test_eval_record() {
+        use std::collections::HashMap;
+
+        let result = eval_string(" {10, a=false, true} ".to_string());
+        let mut fields = HashMap::new();
+
+        fields.insert("0".to_string(), Box::new(Value::new_nat(10)));
+        fields.insert("a".to_string(), Box::new(Value::new_false()));
+        fields.insert("2".to_string(), Box::new(Value::new_true()));
+
+        assert_eq!(result, Ok(Value::new_record(fields)));
     }
 
     #[test]

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use node::{Node};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -12,6 +14,7 @@ pub enum Kind {
     False,
     Nat(u32),
     Lambda(Node),
+    Record(HashMap<String, Box<Value>>),
 }
 
 use self::Kind::*;
@@ -35,5 +38,9 @@ impl Value {
 
     pub fn new_lambda(node: Node) -> Value {
         Value { kind: Lambda(node) }
+    }
+
+    pub fn new_record(fields: HashMap<String, Box<Value>>) -> Value {
+        Value { kind: Record(fields) }
     }
 }
