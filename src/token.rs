@@ -31,6 +31,7 @@ pub enum Keyword {
     EQ, // '='
     COMMA, // ','
     DOT, // '.'
+    UNIT, // 'unit' (value of Unit type)
 }
 
 use self::Kind::*;
@@ -66,6 +67,10 @@ impl Token {
 
     pub fn new_colon() -> Token {
         Token { kind: Keyword(Keyword::COLON) }
+    }
+
+    pub fn new_unit() -> Token {
+        Token { kind: Keyword(Keyword::UNIT) }
     }
 
     pub fn new_bool() -> Token {
@@ -134,6 +139,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "iszero" => Some(Keyword::ISZERO),
         "succ" => Some(Keyword::SUCC),
         "pred" => Some(Keyword::PRED),
+        "unit" => Some(Keyword::UNIT),
         _ => None
     }
 }
