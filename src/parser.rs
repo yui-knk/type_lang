@@ -58,7 +58,7 @@ impl Parser {
             Kind::Keyword(Keyword::ISZERO) => self.parse_iszero(),
             Kind::Keyword(Keyword::SUCC) => self.parse_succ(),
             Kind::Keyword(Keyword::PRED) => self.parse_pred(),
-            Kind::Keyword(Keyword::LBRACE) => self.parse_record(),
+            Kind::Keyword(Keyword::LBRACE) => self.parse_record_or_projection(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -119,12 +119,26 @@ impl Parser {
         Ok(Node::new_apply(node_1, node_2))
     }
 
-    // "{" fields "}"
-    fn parse_record(&mut self) -> Result<Node, Error> {
+    //   "{" fields "}"
+    // | record "." label
+    fn parse_record_or_projection(&mut self) -> Result<Node, Error> {
         let fields = self.parse_fields()?;
         self.expect_keyword(Keyword::RBRACE)?;
+        let record = Node::new_record(fields);
+        let token = self.next_token()?;
 
-        Ok(Node::new_record(fields))
+        match token.kind {
+            // projection
+            Kind::Keyword(Keyword::DOT) => {
+                let label = self.expect_identifier()?;
+                Ok(Node::new_projection(record, label))
+            },
+            // record
+            _ => {
+                self.unget_token(token);
+                Ok(record)
+            }
+        }
     }
 
     // field ("," field) ...
@@ -417,6 +431,40 @@ mod tests {
         assert_eq!(parser.parse(), Ok(Node {
             kind: Kind::Record(fields)
         }));
+    }
+
+    #[test]
+    fn test_parse_projection() {
+        use std::collections::HashMap;
+
+        let mut parser = Parser::new(" {10, a=false, true}.a ".to_string());
+        let mut fields = HashMap::new();
+
+        fields.insert("0".to_string(), Box::new(Node::new_nat(10)));
+        fields.insert("a".to_string(), Box::new(Node::new_bool(false)));
+        fields.insert("2".to_string(), Box::new(Node::new_bool(true)));
+
+        assert_eq!(parser.parse(), Ok(Node {
+            kind: Kind::Projection(
+                Box::new(Node { kind: Kind::Record(fields) }),
+                "a".to_string()
+            )
+        }));
+
+
+        // let mut parser = Parser::new(" {10, a=false, true}.2 ".to_string());
+        // let mut fields = HashMap::new();
+
+        // fields.insert("0".to_string(), Box::new(Node::new_nat(10)));
+        // fields.insert("a".to_string(), Box::new(Node::new_bool(false)));
+        // fields.insert("2".to_string(), Box::new(Node::new_bool(true)));
+
+        // assert_eq!(parser.parse(), Ok(Node {
+        //     kind: Kind::Projection(
+        //         Box::new(Node { kind: Kind::Record(fields) }),
+        //         "2".to_string()
+        //     )
+        // }));
     }
 
     #[test]

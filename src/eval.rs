@@ -67,7 +67,7 @@ impl Evaluator {
             Kind::If(..) => self.eval_if(node),
             Kind::Iszero(..) => self.eval_iszero(node),
             Kind::Record(..) => self.eval_record(node),
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 

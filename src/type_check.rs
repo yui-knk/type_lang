@@ -144,7 +144,7 @@ impl TypeChecker {
 
                 Ok(Ty::new_record(fields_type))
             },
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 }

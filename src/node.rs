@@ -19,6 +19,7 @@ pub enum Kind {
     Pred(Box<Node>), // holds Zero or Succ(Natural Number)
     Iszero(Box<Node>), // operand
     Record(HashMap<String, Box<Node>>), // from label to value node
+    Projection(Box<Node>, String), // Record, label
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
 }
 
@@ -70,6 +71,10 @@ impl Node {
 
     pub fn new_if(cond: Node, then_expr: Node, else_expr: Node) -> Node {
         Node { kind: If(Box::new(cond), Box::new(then_expr), Box::new(else_expr)) }
+    }
+
+    pub fn new_projection(record: Node, label: String) -> Node {
+        Node { kind: Projection(Box::new(record), label) }
     }
 
     pub fn new_record(fields: Vec<(Option<String>, Node)>) -> Node {
