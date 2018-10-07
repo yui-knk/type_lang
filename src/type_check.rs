@@ -68,6 +68,13 @@ impl TypeChecker {
                     None => Err(Error::VariableNotFound(var.clone()))
                 }
             },
+            Kind::Let(ref var, ref bound, ref body) => {
+                let bound_ty = self.type_of(bound)?;
+                self.context.push(var.clone(), bound_ty);
+                let body_ty = self.type_of(body)?;
+                self.context.pop();
+                Ok(body_ty)
+            },
             // Calculate type of body with var is bound to ty and
             // concat the result with ty as arrow type.
             Kind::Lambda(ref var, ref body, ref ty) => {
@@ -176,7 +183,7 @@ impl TypeChecker {
 
                 Ok(node_type)
             },
-            _ => panic!("")
+            // _ => panic!("")
         }
     }
 }
@@ -283,6 +290,18 @@ mod tests {
 
         let result = check_type_of_string("false as Nat".to_string());
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_let() {
+        let result = check_type_of_string(" let x = 1 in x ".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
+        let result = check_type_of_string(" let x = 1 in iszero x ".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string(" let x = 1 in false ".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
     }
 
     #[test]
