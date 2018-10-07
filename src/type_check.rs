@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use node::{Node, Kind};
-use ty::{Ty, Kind as TyKind};
+use ty::{Ty, Kind as TyKind, Fields};
 
 #[derive(Debug, PartialEq)]
 struct Context {
@@ -144,7 +142,7 @@ impl TypeChecker {
                 Ok(then_type)
             },
             Kind::Record(ref fields) => {
-                let mut fields_type = HashMap::new();
+                let mut fields_type = Fields::new();
 
                 for (s, node) in fields {
                     let node_type = self.type_of(node)?;
@@ -217,7 +215,6 @@ mod tests_env {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
     use parser::{Parser};
     use ty::Ty;
@@ -319,7 +316,7 @@ mod tests {
     #[test]
     fn test_check_record() {
         let result = check_type_of_string(" {10, a=false, true} ".to_string());
-        let mut fields_type = HashMap::new();
+        let mut fields_type = Fields::new();
 
         fields_type.insert("0".to_string(), Box::new(Ty::new_nat()));
         fields_type.insert("a".to_string(), Box::new(Ty::new_bool()));

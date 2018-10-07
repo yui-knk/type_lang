@@ -5,6 +5,20 @@ pub struct Ty {
     pub kind: Kind
 }
 
+pub struct Fields {
+    elements: HashMap<String, Box<Ty>>
+}
+
+impl Fields {
+    pub fn new() -> Fields {
+        Fields { elements: HashMap::new() }
+    }
+
+    pub fn insert(&mut self, k: String, v: Box<Ty>) -> Option<Box<Ty>> {
+        self.elements.insert(k, v)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     Arrow(Box<Ty>, Box<Ty>), // e.g. Bool -> Bool
@@ -33,7 +47,7 @@ impl Ty {
         Ty { kind: Unit }
     }
 
-    pub fn new_record(fields: HashMap<String, Box<Ty>>) -> Ty {
-        Ty { kind: Record(fields) }
+    pub fn new_record(fields: Fields) -> Ty {
+        Ty { kind: Record(fields.elements) }
     }
 }
