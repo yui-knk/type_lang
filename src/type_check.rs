@@ -144,7 +144,7 @@ impl TypeChecker {
             Kind::Record(ref fields) => {
                 let mut fields_type = Fields::new();
 
-                for (s, node) in fields {
+                for (s, node) in fields.iter() {
                     let node_type = self.type_of(node)?;
                     fields_type.insert(s.clone(), Box::new(node_type));
                 }

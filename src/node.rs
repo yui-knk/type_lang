@@ -1,10 +1,37 @@
-use std::collections::HashMap;
-
 use ty::Ty;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
     pub kind: Kind,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Fields {
+    elements: Vec<(String, Box<Node>)>
+}
+
+impl Fields {
+    pub fn new() -> Fields {
+        Fields { elements: Vec::new() }
+    }
+
+    pub fn insert(&mut self, k: String, v: Box<Node>) {
+        self.elements.push((k, v))
+    }
+
+    pub fn iter(&self) -> ::std::slice::Iter<(String, Box<Node>)> {
+        self.elements.iter()
+    }
+
+    pub fn get(&self, k: &str) -> Option<&Box<Node>>
+    {
+        for (i, (s, n)) in self.elements.iter().enumerate() {
+            if s == k { return Some(n) }
+            if i.to_string() == k { return Some(n) }
+        }
+
+        None
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,7 +46,7 @@ pub enum Kind {
     Succ(Box<Node>), // holds Zero or Succ(Natural Number)
     Pred(Box<Node>), // holds Zero or Succ(Natural Number)
     Iszero(Box<Node>), // operand
-    Record(HashMap<String, Box<Node>>), // from label to value node
+    Record(Fields), // from label to value node
     Projection(Box<Node>, String), // Record, label
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
     Unit,
@@ -94,7 +121,7 @@ impl Node {
 
     pub fn new_record(fields: Vec<(Option<String>, Node)>) -> Node {
         let mut count = 0;
-        let mut map = HashMap::new();
+        let mut vec = Vec::with_capacity(fields.len());
 
         for (name, node) in fields {
             let label = match name {
@@ -102,11 +129,11 @@ impl Node {
                 None => count.to_string(),
             };
 
-            map.insert(label, Box::new(node));
+            vec.push((label, Box::new(node)));
             count += 1;
         }
 
-        Node { kind: Record(map) }
+        Node { kind: Record(Fields { elements: vec }) }
     }
 
     pub fn is_none_expression(&self) -> bool {

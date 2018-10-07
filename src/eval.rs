@@ -211,8 +211,8 @@ impl Evaluator {
             Kind::Record(fields) => {
                 let mut field_values = HashMap::new();
 
-                for (s, node) in fields {
-                    let field_value = self.eval(*node)?;
+                for (s, node) in fields.iter() {
+                    let field_value = self.eval(*node.clone())?;
                     field_values.insert(s.clone(), Box::new(field_value));
                 }
 

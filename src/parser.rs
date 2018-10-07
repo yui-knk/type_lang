@@ -355,7 +355,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use node::{Node, Kind};
+    use node::{Node, Kind, Fields};
     use token::{Kind as TokenKind, Keyword, Token};
     use ty::{Ty};
 
@@ -524,10 +524,8 @@ mod tests {
 
     #[test]
     fn test_parse_record() {
-        use std::collections::HashMap;
-
         let mut parser = Parser::new(" {10, a=false, true} ".to_string());
-        let mut fields = HashMap::new();
+        let mut fields = Fields::new();
 
         fields.insert("0".to_string(), Box::new(Node::new_nat(10)));
         fields.insert("a".to_string(), Box::new(Node::new_bool(false)));
@@ -540,10 +538,8 @@ mod tests {
 
     #[test]
     fn test_parse_projection() {
-        use std::collections::HashMap;
-
         let mut parser = Parser::new(" {10, a=false, true}.a ".to_string());
-        let mut fields = HashMap::new();
+        let mut fields = Fields::new();
 
         fields.insert("0".to_string(), Box::new(Node::new_nat(10)));
         fields.insert("a".to_string(), Box::new(Node::new_bool(false)));
@@ -558,7 +554,7 @@ mod tests {
 
 
         let mut parser = Parser::new(" {10, a=false, true}.2 ".to_string());
-        let mut fields = HashMap::new();
+        let mut fields = Fields::new();
 
         fields.insert("0".to_string(), Box::new(Node::new_nat(10)));
         fields.insert("a".to_string(), Box::new(Node::new_bool(false)));
