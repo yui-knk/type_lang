@@ -54,6 +54,8 @@ impl Lexer {
             '.' => self.read_dot(),
             '-' => self.read_arrow(),
             '|' => self.read_vbar(),
+            '<' => self.read_lt(),
+            '>' => self.read_gt(),
             'B' => self.read_bool(),
             'N' => self.read_nnat(),
             '0'...'9' => self.read_nat(),
@@ -142,6 +144,16 @@ impl Lexer {
     fn read_vbar(&mut self) -> Result<Token, Error> {
         self.next_char();
         Ok(Token::new_vbar())
+    }
+
+    fn read_lt(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_lt())
+    }
+
+    fn read_gt(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_gt())
     }
 
     fn read_lbrace(&mut self) -> Result<Token, Error> {
@@ -364,6 +376,22 @@ mod tests {
         let mut lexer = Lexer::new(" | ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::VBAR)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_lt() {
+        let mut lexer = Lexer::new(" < ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::LT)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_gt() {
+        let mut lexer = Lexer::new(" > ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::GT)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 

@@ -42,6 +42,8 @@ pub enum Keyword {
     CASE,      // 'case'
     OF,        // 'of'
     VBAR,      // '|'
+    LT,        // '<'
+    GT,        // '>'
 }
 
 use self::Kind::*;
@@ -57,6 +59,14 @@ impl Token {
 
     pub fn new_identifier(str: String) -> Token {
         Token { kind: Identifier(str) }
+    }
+
+    pub fn new_lt() -> Token {
+        Token { kind: Keyword(Keyword::LT) }
+    }
+
+    pub fn new_gt() -> Token {
+        Token { kind: Keyword(Keyword::GT) }
     }
 
     pub fn new_lbrace() -> Token {
