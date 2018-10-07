@@ -237,13 +237,16 @@ impl Evaluator {
         }
     }
 
-    fn eval_iszero(&self, node: Node) -> Result<Value, Error> {
+    fn eval_iszero(&mut self, node: Node) -> Result<Value, Error> {
         match node.kind {
             Kind::Iszero(n) => {
-                match n.kind {
-                    Kind::Zero => Ok(Value::new_true()),
-                    Kind::Succ(_) => Ok(Value::new_false()),
-                    _ => Err(Error::UnexpectedNode(format!("eval_iszero {:?}", n)))
+                let error_message = format!("eval_iszero {:?}", n);
+                let n_val = self.eval(*n)?;
+
+                match n_val.kind {
+                    ValueKind::Nat(0) => Ok(Value::new_true()),
+                    ValueKind::Nat(_) => Ok(Value::new_false()),
+                    _ => Err(Error::UnexpectedNode(error_message))
                 }
             },
             _ => Err(Error::UnexpectedNode(format!("eval_iszero {:?}", node)))
@@ -403,8 +406,8 @@ mod tests {
         let result = eval_string(" let x = 1 in x ".to_string());
         assert_eq!(result, Ok(Value::new_nat(1)));
 
-        // let result = eval_string(" let x = 0 in iszero x ".to_string());
-        // assert_eq!(result, Ok(Value::new_true()));
+        let result = eval_string(" let x = 0 in iszero x ".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
 
         let result = eval_string(" let x = 1 in false ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
