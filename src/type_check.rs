@@ -176,7 +176,7 @@ impl TypeChecker {
 
                 Ok(node_type)
             },
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 }

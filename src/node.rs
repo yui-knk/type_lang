@@ -12,6 +12,7 @@ pub enum Kind {
     NoneExpression,
     VarRef(String),
     Lambda(String, Box<Node>, Box<Ty>), // variable, body, type of argument
+    Let(String, Box<Node>, Box<Node>), // variable, bound value, body
     Apply(Box<Node>, Box<Node>),
     Bool(bool),
     Zero, // Natural Number is Zero or Succ(Natural Number)
@@ -42,6 +43,10 @@ impl Node {
 
     pub fn new_lambda(var: String, node: Node, ty: Ty) -> Node {
         Node { kind: Lambda(var, Box::new(node), Box::new(ty)) }
+    }
+
+    pub fn new_let(var: String, bound_value: Node, body: Node) -> Node {
+        Node { kind: Let(var, Box::new(bound_value), Box::new(body)) }
     }
 
     pub fn new_apply(node_1: Node, node_2: Node) -> Node {

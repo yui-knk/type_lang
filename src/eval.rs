@@ -71,7 +71,7 @@ impl Evaluator {
             Kind::Projection(..) => self.eval_projection(node),
             Kind::Unit => self.eval_unit(node),
             Kind::As(..) => self.eval_as(node),
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 

@@ -105,6 +105,7 @@ impl Parser {
             Kind::Keyword(Keyword::PRED) => self.parse_pred(),
             Kind::Keyword(Keyword::LBRACE) => self.parse_record_or_projection(),
             Kind::Keyword(Keyword::UNIT) => self.parse_unit(),
+            Kind::Keyword(Keyword::LET) => self.parse_let(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -157,6 +158,17 @@ impl Parser {
         self.expect_keyword(Keyword::RBRACE)?;
 
         Ok(Node::new_lambda(var, node, ty))
+    }
+
+    // "let" variable "=" bound_value "in" body
+    fn parse_let(&mut self) -> Result<Node, Error> {
+        let var = self.expect_identifier()?;
+        self.expect_keyword(Keyword::EQ)?;
+        let bound_value = self.parse_expression()?;
+        self.expect_keyword(Keyword::IN)?;
+        let body = self.parse_expression()?;
+
+        Ok(Node::new_let(var, bound_value, body))
     }
 
     // "(" exp1 exp2 ")"
@@ -439,6 +451,19 @@ mod tests {
                 "x".to_string(),
                 Box::new(Node { kind: Kind::Bool(false) }),
                 Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_bool()))
+            )}
+        ));
+    }
+
+    #[test]
+    fn test_parse_let() {
+        let mut parser = Parser::new(" let x = 1 in false ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Let(
+                "x".to_string(),
+                Box::new(Node::new_nat(1)),
+                Box::new(Node { kind: Kind::Bool(false) })
             )}
         ));
     }
