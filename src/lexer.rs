@@ -54,6 +54,7 @@ impl Lexer {
             '.' => self.read_dot(),
             '-' => self.read_arrow(),
             'B' => self.read_bool(),
+            'N' => self.read_nnat(),
             '0'...'9' => self.read_nat(),
             'a'...'z' => self.read_identifier_or_keyword(),
             '\n' => {
@@ -189,6 +190,14 @@ impl Lexer {
         self.next_char();
 
         Ok(Token::new_bool())
+    }
+
+    fn read_nnat(&mut self) -> Result<Token, Error> {
+        self.expect_next_char('a')?;
+        self.expect_next_char('t')?;
+        self.next_char();
+
+        Ok(Token::new_nnat())
     }
 
     fn read_arrow(&mut self) -> Result<Token, Error> {
@@ -402,6 +411,14 @@ mod tests {
         let mut lexer = Lexer::new(" Bool ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::BOOL)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_nnat() {
+        let mut lexer = Lexer::new(" Nat ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::NAT)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 

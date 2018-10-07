@@ -22,6 +22,7 @@ pub enum Keyword {
     COLON,  // ':'
     ARROW,  // '->'
     BOOL,   // 'Bool' (type)
+    NAT,    // 'Nat' (type)
     IF,
     THEN,
     ELSE,
@@ -77,6 +78,10 @@ impl Token {
 
     pub fn new_bool() -> Token {
         Token { kind: Keyword(Keyword::BOOL) }
+    }
+
+    pub fn new_nnat() -> Token {
+        Token { kind: Keyword(Keyword::NAT) }
     }
 
     pub fn new_nat(i: u32) -> Token {
