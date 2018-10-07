@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use node::{Node, Kind};
-use value::{Value, Kind as ValueKind};
+use value::{Value, Kind as ValueKind, Fields};
 
 struct Env {
     // Mapping from variable to value.
@@ -206,10 +204,10 @@ impl Evaluator {
         Ok(Value::new_record(field_values))
     }
 
-    fn _eval_record(&mut self, node: Node) -> Result<HashMap<String, Box<Value>>, Error> {
+    fn _eval_record(&mut self, node: Node) -> Result<Fields, Error> {
         match node.kind {
             Kind::Record(fields) => {
-                let mut field_values = HashMap::new();
+                let mut field_values = Fields::new();
 
                 for (s, node) in fields.iter() {
                     let field_value = self.eval(*node.clone())?;
@@ -415,10 +413,8 @@ mod tests {
 
     #[test]
     fn test_eval_record() {
-        use std::collections::HashMap;
-
         let result = eval_string(" {10, a=false, true} ".to_string());
-        let mut fields = HashMap::new();
+        let mut fields = Fields::new();
 
         fields.insert("0".to_string(), Box::new(Value::new_nat(10)));
         fields.insert("a".to_string(), Box::new(Value::new_false()));
@@ -434,6 +430,9 @@ mod tests {
 
         let result = eval_string(" {10, a=false, true}.0 ".to_string());
         assert_eq!(result, Ok(Value::new_nat(10)));
+
+        let result = eval_string(" {10, a=false, true}.1 ".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
     }
 
     #[test]
