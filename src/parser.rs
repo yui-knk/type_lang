@@ -355,9 +355,8 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use node::{Node, Kind, Fields};
-    use token::{Kind as TokenKind, Keyword, Token};
-    use ty::{Ty};
+    use node::{Kind, Fields};
+    use token::{Kind as TokenKind};
 
     #[test]
     fn test_parse_nat() {

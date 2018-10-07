@@ -274,7 +274,6 @@ impl Evaluator {
 #[cfg(test)]
 mod tests_env {
     use super::*;
-    use value::Value;
 
     #[test]
     fn test_find_by_variable() {

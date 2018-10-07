@@ -232,7 +232,7 @@ impl Lexer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use token::{Token, Keyword};
+    use token::{Keyword};
 
     #[test]
     fn test_next_token_nat() {

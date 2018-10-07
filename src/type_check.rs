@@ -189,7 +189,6 @@ impl TypeChecker {
 #[cfg(test)]
 mod tests_env {
     use super::*;
-    use ty::Ty;
 
     #[test]
     fn test_find_by_variable() {
