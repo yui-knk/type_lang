@@ -20,3 +20,6 @@ These features are not implemented:
 - Can not pass a file as input. We should call the excutable with `-e "script"` format.
 
 TODO:
+
+- Record type syntax
+- Type alias
