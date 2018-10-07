@@ -258,12 +258,15 @@ impl Parser {
         }
     }
 
-    //   "inl" expr
-    // | "inr" expr
+    //   "inl" expr "as" type
+    // | "inr" expr "as" type
     fn parse_tag(&mut self, tag: &str) -> Result<Node, Error> {
-        let node = self.parse_expression()?;
+        //
+        let node = self._parse_expression()?;
+        self.expect_keyword(Keyword::AS)?;
+        let ty = self.parse_type()?;
 
-        Ok(Node::new_tag(tag.to_string(), node))
+        Ok(Node::new_tag(tag.to_string(), node, ty))
     }
 
     // "if" cond "then" then_expr "else" else_expr
@@ -579,19 +582,21 @@ mod tests {
 
     #[test]
     fn test_parse_tag() {
-        let mut parser = Parser::new(" inl false ".to_string());
+        let mut parser = Parser::new(" inl false as Bool".to_string());
         assert_eq!(parser.parse(), Ok(Node
             { kind: Kind::Tag(
                 "inl".to_string(),
                 Box::new(Node { kind: Kind::Bool(false) }),
+                Box::new(Ty::new_bool())
             )}
         ));
 
-        let mut parser = Parser::new(" inr 1 ".to_string());
+        let mut parser = Parser::new(" inr 1 as Nat ".to_string());
         assert_eq!(parser.parse(), Ok(Node
             { kind: Kind::Tag(
                 "inr".to_string(),
                 Box::new(Node::new_nat(1)),
+                Box::new(Ty::new_nat())
             )}
         ));
     }
