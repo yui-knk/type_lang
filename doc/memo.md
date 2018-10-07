@@ -20,6 +20,3 @@ These features are not implemented:
 - Can not pass a file as input. We should call the excutable with `-e "script"` format.
 
 TODO:
-
-- "{10, a=false, true}.1" access support.
-- Should distinguish the type of "{a=false, b=1}" and "{b=1, a=false}" (P.99)
