@@ -255,11 +255,16 @@ impl Parser {
         Ok(Node::new_if(cond, then_expr, else_expr))
     }
 
-    // Bool
+    //   Bool
+    // | Nat
     fn parse_atomic_type(&mut self) -> Result<Ty, Error> {
-        self.expect_keyword(Keyword::BOOL)?;
+        let token = self.next_token()?;
 
-        Ok(Ty::new_bool())
+        match token.kind {
+            Kind::Keyword(Keyword::BOOL) => Ok(Ty::new_bool()),
+            Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
+            _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
+        }
     }
 
     //   atomic_type "->" arrow_type
@@ -407,6 +412,12 @@ mod tests {
 
         assert_eq!(parser.parse(), Ok(Node{
             kind: Kind::As(Box::new(Node::new_bool(false)), Box::new(Ty::new_bool()))
+        }));
+
+        let mut parser = Parser::new(" 1 as Nat ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node{
+            kind: Kind::As(Box::new(Node::new_nat(1)), Box::new(Ty::new_nat()))
         }));
     }
 
