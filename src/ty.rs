@@ -24,6 +24,7 @@ pub enum Kind {
     Bool,
     Nat, // Natural Number
     Record(Fields),
+    Variant(Fields),
     Unit, // the only value of Unit type is "unit"
 }
 
@@ -48,6 +49,10 @@ impl Ty {
 
     pub fn new_record(fields: Fields) -> Ty {
         Ty { kind: Record(fields) }
+    }
+
+    pub fn new_variant(fields: Fields) -> Ty {
+        Ty { kind: Variant(fields) }
     }
 }
 

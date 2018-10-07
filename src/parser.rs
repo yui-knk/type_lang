@@ -1,7 +1,7 @@
 use lexer;
 use node::{Node};
 use token::{Kind, Keyword, Token};
-use ty::Ty;
+use ty::{Ty, Fields};
 
 #[derive(Debug)]
 pub struct Parser {
@@ -292,9 +292,35 @@ impl Parser {
         }
     }
 
-    //   atomic_type "->" arrow_type
+    // All types
+    //
+    //   atomic_type "->" arrow_type  // ArrowType
+    // | "<" label ":" type (, label ":" type) ... ">" // VariantType
     // | atomic_type
     fn parse_type(&mut self) -> Result<Ty, Error> {
+        let token = self.next_token()?;
+
+        // Case: "<" label ":" type (, label ":" type) ... ">"
+        if token.has_keyword(&Keyword::LT) {
+            let mut fields = Fields::new();
+
+            loop {
+                let s = self.expect_identifier()?;
+                self.expect_keyword(Keyword::COLON)?;
+                let ty = self.parse_type()?;
+                fields.insert(s.clone(), Box::new(ty));
+                let token2 = self.next_token()?;
+
+                if token2.has_keyword(&Keyword::GT) { break; }
+                if !token2.has_keyword(&Keyword::COMMA) {
+                    return Err(Error::UnexpectedToken(format!("{:?}", Keyword::COMMA), token2));
+                }
+            }
+
+            return Ok(Ty::new_variant(fields));
+        }
+
+        self.unget_token(token);
         let ty1 = self.parse_atomic_type()?;
         let token = self.next_token()?;
 
@@ -334,7 +360,7 @@ impl Parser {
         if token.has_keyword(&keyword) {
             Ok(())
         } else {
-            Err(Error::UnexpectedToken(format!("{:?}", keyword), token))
+            Err(Error::UnexpectedToken(format!("expect_keyword call: {:?}", keyword), token))
         }
     }
 
@@ -343,7 +369,7 @@ impl Parser {
 
         match token.kind {
             Kind::Identifier(s) => Ok(s),
-            _ => Err(Error::UnexpectedToken("Identifier".to_string(), token))
+            _ => Err(Error::UnexpectedToken("expect_identifier call: Identifier".to_string(), token))
         }
     }
 
@@ -370,6 +396,7 @@ mod tests {
     use super::*;
     use node::{Kind, Fields};
     use token::{Kind as TokenKind};
+    use ty::{Kind as TyKind, Fields as TyFields};
 
     #[test]
     fn test_parse_nat() {
@@ -545,6 +572,19 @@ mod tests {
 
         assert_eq!(parser.parse(), Ok(Node {
             kind: Kind::Record(fields)
+        }));
+    }
+
+    #[test]
+    fn test_parse_variant_type() {
+        let mut parser = Parser::new(" <a:Bool, b:Nat> ".to_string());
+        let mut fields = TyFields::new();
+
+        fields.insert("a".to_string(), Box::new(Ty::new_bool()));
+        fields.insert("b".to_string(), Box::new(Ty::new_nat()));
+
+        assert_eq!(parser.parse_type(), Ok(Ty {
+            kind: TyKind::Variant(fields)
         }));
     }
 
