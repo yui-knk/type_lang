@@ -11,7 +11,7 @@ pub struct Node {
 pub enum Kind {
     NoneExpression,
     VarRef(String),
-    Lambda(String, Box<Node>, Box<Ty>), // variable, body
+    Lambda(String, Box<Node>, Box<Ty>), // variable, body, type of argument
     Apply(Box<Node>, Box<Node>),
     Bool(bool),
     Zero, // Natural Number is Zero or Succ(Natural Number)
@@ -22,6 +22,7 @@ pub enum Kind {
     Projection(Box<Node>, String), // Record, label
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
     Unit,
+    As(Box<Node>, Box<Ty>), // expression, ascribed type
 }
 
 use self::Kind::*;
@@ -33,6 +34,10 @@ impl Node {
 
     pub fn new_var_ref(str: String) -> Node {
         Node { kind: VarRef(str) }
+    }
+
+    pub fn new_as(node: Node, ty: Ty) -> Node {
+        Node { kind: As(Box::new(node), Box::new(ty)) }
     }
 
     pub fn new_lambda(var: String, node: Node, ty: Ty) -> Node {

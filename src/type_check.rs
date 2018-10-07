@@ -166,6 +166,16 @@ impl TypeChecker {
                     }
                 }
             },
+            Kind::As(ref node, ref ty) => {
+                let node_type = self.type_of(node)?;
+
+                if node_type.kind != ty.kind {
+                    return Err(Error::TypeMismatch(format!(
+                        "Type mismatch. EXPRESSION: {:?}, AS: {:?}.", node_type.kind, ty.kind)));
+                }
+
+                Ok(node_type)
+            },
             // _ => panic!("")
         }
     }
@@ -257,6 +267,15 @@ mod tests {
         assert_eq!(result, Ok(Ty::new_nat()));
 
         let result = check_type_of_string("pred false".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_as() {
+        let result = check_type_of_string("false as Bool".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("1 as Bool".to_string());
         assert!(result.is_err());
     }
 

@@ -71,12 +71,25 @@ impl Parser {
         Ok(node)
     }
 
+    fn parse_expression(&mut self) -> Result<Node, Error> {
+        let node = self._parse_expression()?;
+        let token = self.next_token()?;
+
+        if token.has_keyword(&Keyword::AS) {
+            let ty = self.parse_type()?;
+            Ok(Node::new_as(node, ty))
+        } else {
+            self.unget_token(token);
+            Ok(node)
+        }
+    }
+
     // There are 2 types of perse methods
     // (1) First token has been already consumed when methods are called,
     //     e.g. parse_bool, parse_var_ref etc.
     // (2) First token has not been already consumed,
     //     e.g. parse_type.
-    fn parse_expression(&mut self) -> Result<Node, Error> {
+    fn _parse_expression(&mut self) -> Result<Node, Error> {
         let token = self.next_token()?;
 
         match token.kind {
@@ -386,6 +399,15 @@ mod tests {
         assert_eq!(parser.parse(), Err(
             Error::UnexpectedToken("EOF".to_string(), Token {kind: TokenKind::Keyword(Keyword::FALSE)}))
         );
+    }
+
+    #[test]
+    fn test_parse_as() {
+        let mut parser = Parser::new(" false as Bool ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node{
+            kind: Kind::As(Box::new(Node::new_bool(false)), Box::new(Ty::new_bool()))
+        }));
     }
 
     #[test]
