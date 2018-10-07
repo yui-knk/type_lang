@@ -318,13 +318,9 @@ impl Parser {
             // }
 
             // TODO: 
-            let _ = self.expect_identifier()?;
-            self.expect_keyword(Keyword::COLON)?;
             let ty = self.parse_type()?;
             fields.insert("inl".to_string(), Box::new(ty));
             self.expect_keyword(Keyword::COMMA)?;
-            let _ = self.expect_identifier()?;
-            self.expect_keyword(Keyword::COLON)?;
             let ty = self.parse_type()?;
             fields.insert("inr".to_string(), Box::new(ty));
             self.expect_keyword(Keyword::GT)?;
@@ -590,7 +586,7 @@ mod tests {
 
     #[test]
     fn test_parse_variant_type() {
-        let mut parser = Parser::new(" <a:Bool, b:Nat> ".to_string());
+        let mut parser = Parser::new(" <Bool, Nat> ".to_string());
         let mut fields = TyFields::new();
 
         // fields.insert("a".to_string(), Box::new(Ty::new_bool()));

@@ -373,16 +373,16 @@ mod tests {
 
     #[test]
     fn test_check_variant() {
-        let result = check_type_of_string("inl 1 as <l:Nat, r:Bool>".to_string());
+        let result = check_type_of_string("inl 1 as <Nat, Bool>".to_string());
         assert_eq!(result, Ok(Ty::new_nat()));
 
-        let result = check_type_of_string("inr false as <l:Nat, r:Bool>".to_string());
+        let result = check_type_of_string("inr false as <Nat, Bool>".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
 
-        let result = check_type_of_string("inl false as <l:Nat, r:Bool>".to_string());
+        let result = check_type_of_string("inl false as <Nat, Bool>".to_string());
         assert!(result.is_err());
 
-        let result = check_type_of_string("inr 1 as <l:Nat, r:Bool>".to_string());
+        let result = check_type_of_string("inr 1 as <Nat, Bool>".to_string());
         assert!(result.is_err());
     }
 
