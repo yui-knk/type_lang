@@ -1,4 +1,5 @@
 use node::{Node};
+use ty::{Ty};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Value {
@@ -44,6 +45,7 @@ pub enum Kind {
     Nat(u32),
     Lambda(Node),
     Record(Fields),
+    Tag(String, Box<Value>, Box<Ty>),
 }
 
 use self::Kind::*;
@@ -75,5 +77,9 @@ impl Value {
 
     pub fn new_record(fields: Fields) -> Value {
         Value { kind: Record(fields) }
+    }
+
+    pub fn new_tag(s: String, value: Value, ty: Ty) -> Value {
+        Value { kind: Tag(s, Box::new(value), Box::new(ty)) }
     }
 }

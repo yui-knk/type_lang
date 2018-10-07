@@ -70,7 +70,8 @@ impl Evaluator {
             Kind::Projection(..) => self.eval_projection(node),
             Kind::Unit => self.eval_unit(node),
             Kind::As(..) => self.eval_as(node),
-            _ => panic!("")
+            Kind::Tag(..) => self.eval_tag(node),
+            // _ => panic!("")
         }
     }
 
@@ -141,6 +142,17 @@ impl Evaluator {
             Kind::As(expr, _) => self.eval(*expr),
             _ => Err(Error::UnexpectedNode(format!("eval_as {:?}", node)))
         }
+    }
+
+    fn eval_tag(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Tag(s, node, ty) => {
+                let value = self.eval(*node)?;
+                Ok(Value::new_tag(s, value, *ty))
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_tag {:?}", node)))
+        }
+
     }
 
     fn eval_bool(&self, node: Node) -> Result<Value, Error> {
@@ -301,7 +313,7 @@ mod tests {
     use value::{Value};
     use parser::{Parser};
     use node::{Node};
-    use ty::{Ty};
+    use ty::{Ty, Fields as TyFields};
     use type_check::{TypeChecker};
 
     fn eval_string(str: String) -> Result<Value, Error> {
@@ -408,6 +420,21 @@ mod tests {
 
         let result = eval_string(" let x = 1 in false ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
+    }
+
+    #[test]
+    fn test_eval_variant() {
+        let result = eval_string("inl 1 as <Nat, Bool>".to_string());
+        let mut fields = TyFields::new();
+
+        fields.insert("inl".to_string(), Box::new(Ty::new_nat()));
+        fields.insert("inr".to_string(), Box::new(Ty::new_bool()));
+
+        assert_eq!(result, Ok(Value::new_tag(
+            "inl".to_string(),
+            Value::new_nat(1),
+            Ty::new_variant(fields)
+        )));
     }
 
     #[test]
