@@ -333,6 +333,9 @@ mod tests {
         let result = check_type_of_string(" {10, a=false, true}.a ".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
 
+        let result = check_type_of_string(" {10, a=false, true}.1 ".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
         let result = check_type_of_string(" {10, a=false, true}.3 ".to_string());
         assert_eq!(result, Err(Error::IndexError("3 is not valid index.".to_string())));
 
