@@ -34,6 +34,7 @@ pub enum Keyword {
     DOT, // '.'
     UNIT, // 'unit' (value of Unit type)
     AS, // 'as'
+    LET, // 'let'
     SEMICOLON, // ';'
 }
 
@@ -120,6 +121,10 @@ impl Token {
         Token { kind: Keyword(Keyword::EQ) }
     }
 
+    pub fn new_let() -> Token {
+        Token { kind: Keyword(Keyword::LET) }
+    }
+
     pub fn new_comma() -> Token {
         Token { kind: Keyword(Keyword::COMMA) }
     }
@@ -156,6 +161,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "pred" => Some(Keyword::PRED),
         "unit" => Some(Keyword::UNIT),
         "as" => Some(Keyword::AS),
+        "let" => Some(Keyword::LET),
         _ => None
     }
 }
