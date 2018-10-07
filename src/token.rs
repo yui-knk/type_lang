@@ -26,17 +26,22 @@ pub enum Keyword {
     IF,
     THEN,
     ELSE,
-    ISZERO, // iszero (function)
-    SUCC, // succ (function)
-    PRED, // pred (function)
-    EQ, // '='
-    COMMA, // ','
-    DOT, // '.'
-    UNIT, // 'unit' (value of Unit type)
-    AS, // 'as'
-    LET, // 'let'
-    IN, // 'in'
+    ISZERO,    // iszero (function)
+    SUCC,      // succ (function)
+    PRED,      // pred (function)
+    EQ,        // '='
+    COMMA,     // ','
+    DOT,       // '.'
+    UNIT,      // 'unit' (value of Unit type)
+    AS,        // 'as'
+    LET,       // 'let'
+    IN,        // 'in'
     SEMICOLON, // ';'
+    INL,       // 'inl'
+    INR,       // 'inr'
+    CASE,      // 'case'
+    OF,        // 'of'
+    VBAR,      // '|'
 }
 
 use self::Kind::*;
@@ -146,6 +151,10 @@ impl Token {
         Token { kind: Keyword(Keyword::IN) }
     }
 
+    pub fn new_vbar() -> Token {
+        Token { kind: Keyword(Keyword::VBAR) }
+    }
+
     pub fn has_keyword(&self, keyword: &Keyword) -> bool {
         match self.kind {
             Kind::Keyword(ref key) if key == keyword => true,
@@ -168,6 +177,10 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "as" => Some(Keyword::AS),
         "let" => Some(Keyword::LET),
         "in" => Some(Keyword::IN),
+        "inl" => Some(Keyword::INL),
+        "inr" => Some(Keyword::INR),
+        "case" => Some(Keyword::CASE),
+        "of" => Some(Keyword::OF),
         _ => None
     }
 }

@@ -53,6 +53,7 @@ impl Lexer {
             ',' => self.read_comma(),
             '.' => self.read_dot(),
             '-' => self.read_arrow(),
+            '|' => self.read_vbar(),
             'B' => self.read_bool(),
             'N' => self.read_nnat(),
             '0'...'9' => self.read_nat(),
@@ -136,6 +137,11 @@ impl Lexer {
             Some(k) => Ok(Token::new_keyword(k)),
             None => Ok(Token::new_identifier(self.token_string().to_string())),
         }
+    }
+
+    fn read_vbar(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_vbar())
     }
 
     fn read_lbrace(&mut self) -> Result<Token, Error> {
@@ -318,6 +324,46 @@ mod tests {
         let mut lexer = Lexer::new(" as ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::AS)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_inl() {
+        let mut lexer = Lexer::new(" inl ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::INL)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_inr() {
+        let mut lexer = Lexer::new(" inr ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::INR)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_case() {
+        let mut lexer = Lexer::new(" case ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::CASE)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_of() {
+        let mut lexer = Lexer::new(" of ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::OF)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_vbar() {
+        let mut lexer = Lexer::new(" | ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::VBAR)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
