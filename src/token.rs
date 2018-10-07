@@ -32,6 +32,7 @@ pub enum Keyword {
     COMMA, // ','
     DOT, // '.'
     UNIT, // 'unit' (value of Unit type)
+    AS, // 'as'
     SEMICOLON, // ';'
 }
 
@@ -126,6 +127,10 @@ impl Token {
         Token { kind: Keyword(Keyword::DOT) }
     }
 
+    pub fn new_as() -> Token {
+        Token { kind: Keyword(Keyword::AS) }
+    }
+
     pub fn has_keyword(&self, keyword: &Keyword) -> bool {
         match self.kind {
             Kind::Keyword(ref key) if key == keyword => true,
@@ -145,6 +150,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "succ" => Some(Keyword::SUCC),
         "pred" => Some(Keyword::PRED),
         "unit" => Some(Keyword::UNIT),
+        "as" => Some(Keyword::AS),
         _ => None
     }
 }
