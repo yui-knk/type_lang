@@ -106,6 +106,8 @@ impl Parser {
             Kind::Keyword(Keyword::LBRACE) => self.parse_record_or_projection(),
             Kind::Keyword(Keyword::UNIT) => self.parse_unit(),
             Kind::Keyword(Keyword::LET) => self.parse_let(),
+            Kind::Keyword(Keyword::INL) => self.parse_tag("inl"),
+            Kind::Keyword(Keyword::INR) => self.parse_tag("inr"),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -254,6 +256,14 @@ impl Parser {
                 Ok((None, node))
             }
         }
+    }
+
+    //   "inl" expr
+    // | "inr" expr
+    fn parse_tag(&mut self, tag: &str) -> Result<Node, Error> {
+        let node = self.parse_expression()?;
+
+        Ok(Node::new_tag(tag.to_string(), node))
     }
 
     // "if" cond "then" then_expr "else" else_expr
@@ -565,6 +575,25 @@ mod tests {
                 "2".to_string()
             )
         }));
+    }
+
+    #[test]
+    fn test_parse_tag() {
+        let mut parser = Parser::new(" inl false ".to_string());
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Tag(
+                "inl".to_string(),
+                Box::new(Node { kind: Kind::Bool(false) }),
+            )}
+        ));
+
+        let mut parser = Parser::new(" inr 1 ".to_string());
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Tag(
+                "inr".to_string(),
+                Box::new(Node::new_nat(1)),
+            )}
+        ));
     }
 
     #[test]

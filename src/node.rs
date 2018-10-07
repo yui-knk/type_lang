@@ -50,6 +50,7 @@ pub enum Kind {
     Projection(Box<Node>, String), // Record, label
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
     Unit,
+    Tag(String, Box<Node>), // tag (inl|inr), value
     As(Box<Node>, Box<Ty>), // expression, ascribed type
 }
 
@@ -113,6 +114,10 @@ impl Node {
 
     pub fn new_if(cond: Node, then_expr: Node, else_expr: Node) -> Node {
         Node { kind: If(Box::new(cond), Box::new(then_expr), Box::new(else_expr)) }
+    }
+
+    pub fn new_tag(s: String, node: Node) -> Node {
+        Node { kind: Tag(s, Box::new(node)) }
     }
 
     pub fn new_projection(record: Node, label: String) -> Node {
