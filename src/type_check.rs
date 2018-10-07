@@ -275,7 +275,13 @@ mod tests {
         let result = check_type_of_string("false as Bool".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
 
+        let result = check_type_of_string("1 as Nat".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
         let result = check_type_of_string("1 as Bool".to_string());
+        assert!(result.is_err());
+
+        let result = check_type_of_string("false as Nat".to_string());
         assert!(result.is_err());
     }
 
