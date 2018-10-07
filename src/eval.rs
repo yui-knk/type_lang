@@ -63,6 +63,7 @@ impl Evaluator {
             Kind::Succ(_) => self.eval_succ(node),
             Kind::Pred(_) => self.eval_pred(node),
             Kind::Apply(..) => self.eval_apply(node),
+            Kind::Let(..) => self.eval_let(node),
             Kind::Lambda(..) => self.eval_lambda(node),
             Kind::VarRef(..) => self.eval_var_ref(node),
             Kind::If(..) => self.eval_if(node),
@@ -71,12 +72,25 @@ impl Evaluator {
             Kind::Projection(..) => self.eval_projection(node),
             Kind::Unit => self.eval_unit(node),
             Kind::As(..) => self.eval_as(node),
-            _ => panic!("")
+            // _ => panic!("")
         }
     }
 
     fn eval_none_expression(&self, _node: Node) -> Result<Value, Error> {
         Ok(Value::new_none())
+    }
+
+    fn eval_let(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Let(variable, bound, body) => {
+                let bound_value = self.eval(*bound)?;
+                self.env.push(variable, bound_value);
+                let body_value = self.eval(*body)?;
+                self.env.pop();
+                Ok(body_value)
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_let {:?}", node)))
+        }
     }
 
     fn eval_apply(&mut self, node: Node) -> Result<Value, Error> {
@@ -382,6 +396,18 @@ mod tests {
 
         let result = eval_string("succ pred pred succ succ pred 3".to_string());
         assert_eq!(result, Ok(Value::new_nat(3)));
+    }
+
+    #[test]
+    fn test_eval_let() {
+        let result = eval_string(" let x = 1 in x ".to_string());
+        assert_eq!(result, Ok(Value::new_nat(1)));
+
+        // let result = eval_string(" let x = 0 in iszero x ".to_string());
+        // assert_eq!(result, Ok(Value::new_true()));
+
+        let result = eval_string(" let x = 1 in false ".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
     }
 
     #[test]
