@@ -154,7 +154,7 @@ impl TypeChecker {
             Kind::Projection(ref node, ref label) => {
                 match node.kind {
                     Kind::Record(ref recode) => {
-                        let value = recode.get(&label.clone());
+                        let value = recode.get(label);
 
                         // Maybe this includes semantic analysis
                         match value {
@@ -181,7 +181,36 @@ impl TypeChecker {
 
                 Ok(node_type)
             },
-            _ => panic!("")
+            Kind::Tag(ref tag, ref node, ref ty) => {
+                // Get type from ty (should be Variant type) with tag as a key.
+                // And check the type of tag to match with the type of node.
+
+                match ty.kind {
+                    TyKind::Variant(ref fields) => {
+                        let node_type = self.type_of(node)?;
+                        let tag_type_op = fields.get(tag);
+
+                        match tag_type_op {
+                            Some(tag_type) => {
+                                if node_type != **tag_type {
+                                    return Err(Error::TypeMismatch(format!(
+                                        "Type mismatch. TAG: {:?}, NODE: {:?}.", tag_type, node_type)));
+                                }
+
+                                Ok(node_type)
+                            },
+                            None => Err(Error::IndexError(format!(
+                                            "{} is not valid index.", tag)))
+                        }
+
+                    },
+                    _ => {
+                        Err(Error::TypeMismatch(format!(
+                            "Tag type mismatch. {:?} is not Variant.", ty.kind)))
+                    }
+                }
+            },
+            // _ => panic!("")
         }
     }
 }
@@ -340,6 +369,21 @@ mod tests {
 
         let result = check_type_of_string(" {10, a=false, true}.b ".to_string());
         assert_eq!(result, Err(Error::IndexError("b is not valid index.".to_string())));
+    }
+
+    #[test]
+    fn test_check_variant() {
+        let result = check_type_of_string("inl 1 as <l:Nat, r:Bool>".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
+        let result = check_type_of_string("inr false as <l:Nat, r:Bool>".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("inl false as <l:Nat, r:Bool>".to_string());
+        assert!(result.is_err());
+
+        let result = check_type_of_string("inr 1 as <l:Nat, r:Bool>".to_string());
+        assert!(result.is_err());
     }
 
     #[test]

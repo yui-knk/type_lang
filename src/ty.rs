@@ -16,6 +16,16 @@ impl Fields {
     pub fn insert(&mut self, k: String, v: Box<Ty>) {
         self.elements.push((k, v))
     }
+
+    pub fn get(&self, k: &str) -> Option<&Box<Ty>>
+    {
+        for (i, (s, n)) in self.elements.iter().enumerate() {
+            if s == k { return Some(n) }
+            if i.to_string() == k { return Some(n) }
+        }
+
+        None
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
