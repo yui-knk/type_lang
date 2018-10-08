@@ -35,6 +35,21 @@ impl Fields {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct Cases {
+    elements: Vec<(String, (String, Box<Node>))> // (tag, (variable, body))
+}
+
+impl Cases {
+    pub fn new() -> Cases {
+        Cases { elements: Vec::new() }
+    }
+
+    pub fn insert(&mut self, tag: String, variable: String, body: Node) {
+        self.elements.push((tag, (variable, Box::new(body))))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     NoneExpression,
     VarRef(String),
@@ -51,6 +66,7 @@ pub enum Kind {
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
     Unit,
     Tag(String, Box<Node>, Box<Ty>), // tag (inl|inr), value, type of variant
+    Case(Box<Node>, Cases), // variant, (tag, (variable, body))
     As(Box<Node>, Box<Ty>), // expression, ascribed type
 }
 
@@ -118,6 +134,10 @@ impl Node {
 
     pub fn new_tag(s: String, node: Node, ty: Ty) -> Node {
         Node { kind: Tag(s, Box::new(node), Box::new(ty)) }
+    }
+
+    pub fn new_case(node: Node, cases: Cases) -> Node {
+        Node { kind: Case(Box::new(node), cases) }
     }
 
     pub fn new_projection(record: Node, label: String) -> Node {

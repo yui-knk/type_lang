@@ -210,7 +210,7 @@ impl TypeChecker {
                     }
                 }
             },
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 }

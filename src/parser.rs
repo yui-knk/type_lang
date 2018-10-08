@@ -1,5 +1,5 @@
 use lexer;
-use node::{Node};
+use node::{Node, Cases};
 use token::{Kind, Keyword, Token};
 use ty::{Ty, Fields};
 
@@ -108,6 +108,7 @@ impl Parser {
             Kind::Keyword(Keyword::LET) => self.parse_let(),
             Kind::Keyword(Keyword::INL) => self.parse_tag("inl"),
             Kind::Keyword(Keyword::INR) => self.parse_tag("inr"),
+            Kind::Keyword(Keyword::CASE) => self.parse_case(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -267,6 +268,30 @@ impl Parser {
         let ty = self.parse_type()?;
 
         Ok(Node::new_tag(tag.to_string(), node, ty))
+    }
+
+    // "case" expr "of" "inl" variable "=>" expr "|" "inr" variable "=>" expr
+    fn parse_case(&mut self) -> Result<Node, Error> {
+        let mut cases = Cases::new();
+        let variant = self.parse_expression()?;
+        self.expect_keyword(Keyword::OF)?;
+
+        self.expect_keyword(Keyword::INL)?;
+        let inl_var = self.expect_identifier()?;
+        self.expect_keyword(Keyword::FARROW)?;
+        let inl_expr = self.parse_expression()?;
+
+        self.expect_keyword(Keyword::VBAR)?;
+
+        self.expect_keyword(Keyword::INR)?;
+        let inr_var = self.expect_identifier()?;
+        self.expect_keyword(Keyword::FARROW)?;
+        let inr_expr = self.parse_expression()?;
+
+        cases.insert("inl".to_string(), inl_var, inl_expr);
+        cases.insert("inr".to_string(), inr_var, inr_expr);
+
+        Ok(Node::new_case(variant, cases))
     }
 
     // "if" cond "then" then_expr "else" else_expr
@@ -597,6 +622,23 @@ mod tests {
         assert_eq!(parser.parse_type(), Ok(Ty {
             kind: TyKind::Variant(fields)
         }));
+    }
+
+    #[test]
+    fn test_parse_case() {
+        let mut parser = Parser::new("case inl 1 as <Nat, Bool> of inl x => x | inr y => y".to_string());
+        let mut cases = Cases::new();
+        let mut ty_fields = TyFields::new();
+
+        cases.insert("inl".to_string(), "x".to_string(), Node::new_var_ref("x".to_string()));
+        cases.insert("inr".to_string(), "y".to_string(), Node::new_var_ref("y".to_string()));
+
+        ty_fields.insert("inl".to_string(), Box::new(Ty::new_nat()));
+        ty_fields.insert("inr".to_string(), Box::new(Ty::new_bool()));
+
+        let node = Node::new_tag("inl".to_string(), Node::new_nat(1), Ty::new_variant(ty_fields));
+
+        assert_eq!(parser.parse(), Ok(Node::new_case(node, cases)));
     }
 
     #[test]

@@ -71,7 +71,7 @@ impl Evaluator {
             Kind::Unit => self.eval_unit(node),
             Kind::As(..) => self.eval_as(node),
             Kind::Tag(..) => self.eval_tag(node),
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 
