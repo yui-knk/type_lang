@@ -21,6 +21,7 @@ pub enum Keyword {
     RPAREN, // ')'
     COLON,  // ':'
     ARROW,  // '->'
+    FARROW, // '=>'
     BOOL,   // 'Bool' (type)
     NAT,    // 'Nat' (type)
     IF,
@@ -123,6 +124,10 @@ impl Token {
 
     pub fn new_arrow() -> Token {
         Token { kind: Keyword(Keyword::ARROW) }
+    }
+
+    pub fn new_farrow() -> Token {
+        Token { kind: Keyword(Keyword::FARROW) }
     }
 
     pub fn new_succ() -> Token {

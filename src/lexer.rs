@@ -49,7 +49,7 @@ impl Lexer {
             ')' => self.read_rparen(),
             ':' => self.read_colon(),
             ';' => self.read_semicolon(),
-            '=' => self.read_eq(),
+            '=' => self.read_eq_or_farrow(),
             ',' => self.read_comma(),
             '.' => self.read_dot(),
             '-' => self.read_arrow(),
@@ -186,8 +186,14 @@ impl Lexer {
         Ok(Token::new_semicolon())
     }
 
-    fn read_eq(&mut self) -> Result<Token, Error> {
+    fn read_eq_or_farrow(&mut self) -> Result<Token, Error> {
         self.next_char();
+
+        if self.peek_char()? == '>' {
+            self.next_char();
+            return Ok(Token::new_farrow());
+        }
+
         Ok(Token::new_eq())
     }
 
@@ -517,6 +523,14 @@ mod tests {
         let mut lexer = Lexer::new(" -> ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::ARROW)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_farrow() {
+        let mut lexer = Lexer::new(" => ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::FARROW)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
