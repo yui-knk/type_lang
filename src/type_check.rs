@@ -237,8 +237,8 @@ impl TypeChecker {
                             let case_node_opt = cases.get(label);
 
                             match case_node_opt {
-                                Some((_, case_node)) => {
-                                    self.context.push(label.clone(), *ty.clone());
+                                Some((var, case_node)) => {
+                                    self.context.push(var.clone(), *ty.clone());
                                     let case_type = self.type_of(case_node)?;
                                     results.push((label.clone(), case_type));
                                     self.context.pop();
