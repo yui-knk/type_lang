@@ -199,7 +199,7 @@ impl TypeChecker {
                                         "Type mismatch. TAG: {:?}, NODE: {:?}.", tag_type, node_type)));
                                 }
 
-                                Ok(node_type)
+                                Ok(*ty.clone())
                             },
                             None => Err(Error::IndexError(format!(
                                             "{} is not valid index.", tag)))
@@ -299,7 +299,7 @@ mod tests_env {
 mod tests {
     use super::*;
     use parser::{Parser};
-    use ty::Ty;
+    use ty::{Fields};
 
     fn check_type_of_string(str: String) -> Result<Ty, Error> {
         let mut parser = Parser::new(str);
@@ -428,10 +428,16 @@ mod tests {
     #[test]
     fn test_check_variant() {
         let result = check_type_of_string("inl 1 as <Nat, Bool>".to_string());
-        assert_eq!(result, Ok(Ty::new_nat()));
+        let mut fields = Fields::new();
+        fields.insert("inl".to_string(), Box::new(Ty::new_nat()));
+        fields.insert("inr".to_string(), Box::new(Ty::new_bool()));
+        assert_eq!(result, Ok(Ty::new_variant(fields)));
 
         let result = check_type_of_string("inr false as <Nat, Bool>".to_string());
-        assert_eq!(result, Ok(Ty::new_bool()));
+        let mut fields = Fields::new();
+        fields.insert("inl".to_string(), Box::new(Ty::new_nat()));
+        fields.insert("inr".to_string(), Box::new(Ty::new_bool()));
+        assert_eq!(result, Ok(Ty::new_variant(fields)));
 
         let result = check_type_of_string("inl false as <Nat, Bool>".to_string());
         assert!(result.is_err());
