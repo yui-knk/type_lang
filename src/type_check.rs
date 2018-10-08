@@ -447,10 +447,22 @@ mod tests {
     }
 
     #[test]
-    // fn test_check_case() {
-    //     let result = check_type_of_string("case inl 1 as <Nat, Bool> of inl x => x | inr y => y".to_string());
-    //     assert_eq!(result, Ok(Ty::new_nat()));
-    // }
+    fn test_check_case() {
+        let result = check_type_of_string("case inl 1     as <Nat, Bool> of inl x => x | inr y => 2".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
+        let result = check_type_of_string("case inr false as <Nat, Bool> of inl x => x | inr y => 2".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
+
+        let result = check_type_of_string("case inl 1     as <Nat, Bool> of inl x => true | inr y => y".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("case inr false as <Nat, Bool> of inl x => true | inr y => y".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("case inl 1 as <Nat, Bool> of inl x => x | inr y => y".to_string());
+        assert!(result.is_err());
+    }
 
     #[test]
     fn test_check_apply() {
