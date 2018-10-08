@@ -1,9 +1,9 @@
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct Ty {
     pub kind: Kind
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct Fields {
     elements: Vec<(String, Box<Ty>)>
 }
@@ -17,6 +17,10 @@ impl Fields {
         self.elements.push((k, v))
     }
 
+    pub fn iter(&self) -> ::std::slice::Iter<(String, Box<Ty>)> {
+        self.elements.iter()
+    }
+
     pub fn get(&self, k: &str) -> Option<&Box<Ty>>
     {
         for (i, (s, n)) in self.elements.iter().enumerate() {
@@ -28,7 +32,7 @@ impl Fields {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub enum Kind {
     Arrow(Box<Ty>, Box<Ty>), // e.g. Bool -> Bool
     Bool,

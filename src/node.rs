@@ -47,6 +47,20 @@ impl Cases {
     pub fn insert(&mut self, tag: String, variable: String, body: Node) {
         self.elements.push((tag, (variable, Box::new(body))))
     }
+
+    pub fn iter(&self) -> ::std::slice::Iter<(String, (String, Box<Node>))> {
+        self.elements.iter()
+    }
+
+    pub fn get(&self, k: &str) -> Option<&(String, Box<Node>)>
+    {
+        for (i, (s, n)) in self.elements.iter().enumerate() {
+            if s == k { return Some(n) }
+            if i.to_string() == k { return Some(n) }
+        }
+
+        None
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

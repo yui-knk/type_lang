@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use node::{Node, Kind};
 use ty::{Ty, Kind as TyKind, Fields};
 
@@ -210,7 +212,59 @@ impl TypeChecker {
                     }
                 }
             },
-            _ => panic!("")
+            Kind::Case(ref variant, ref cases) => {
+                // Check:
+                //   (1) Type of variant node is Variant.
+                //   (2) Variant type and cases has same number of labels.
+                //   (3) All type of case nodes are same under the condition of
+                //       a type of variant having same label with label of case is bound.
+
+                let variant_type = self.type_of(variant)?;
+
+                match variant_type.kind {
+                    // Check (1)
+                    TyKind::Variant(ref fields) => {
+                        // Check (2)
+                        if fields.iter().count() != cases.iter().count() {
+                            return Err(Error::TypeMismatch(format!(
+                                "Fields count mismatch. fields count {}, cases count {}.", fields.iter().count(), cases.iter().count())));
+                        }
+
+                        // Vec of (label, case_type)
+                        let mut results = Vec::new();
+
+                        for (label, ty) in fields.iter() {
+                            let case_node_opt = cases.get(label);
+
+                            match case_node_opt {
+                                Some((_, case_node)) => {
+                                    self.context.push(label.clone(), *ty.clone());
+                                    let case_type = self.type_of(case_node)?;
+                                    results.push((label.clone(), case_type));
+                                    self.context.pop();
+                                },
+                                None => {
+                                    return Err(Error::IndexError(format!("{} is not valid index.", label)))
+                                }
+                            }
+                        }
+
+                        // Check (3)
+                        if results.iter().map(|(_, t)| t)
+                                  .unique().count() != 1 {
+                            return Err(Error::TypeMismatch(format!(
+                                "Results type is not unique. results: {:?}.", results)));
+                        }
+
+                        Ok(results.first().unwrap().1.clone())
+                    },
+                    _ => {
+                        Err(Error::TypeMismatch(format!(
+                            "Tag type mismatch. {:?} is not Variant.", variant_type.kind)))
+                    }
+                }
+            },
+            // _ => panic!("")
         }
     }
 }
@@ -385,6 +439,12 @@ mod tests {
         let result = check_type_of_string("inr 1 as <Nat, Bool>".to_string());
         assert!(result.is_err());
     }
+
+    #[test]
+    // fn test_check_case() {
+    //     let result = check_type_of_string("case inl 1 as <Nat, Bool> of inl x => x | inr y => y".to_string());
+    //     assert_eq!(result, Ok(Ty::new_nat()));
+    // }
 
     #[test]
     fn test_check_apply() {

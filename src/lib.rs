@@ -1,3 +1,5 @@
+extern crate itertools;
+
 pub mod eval;
 pub mod lexer;
 pub mod node;
