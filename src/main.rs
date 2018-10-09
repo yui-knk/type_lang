@@ -6,15 +6,25 @@ use std::process::exit;
 // use std::io::prelude::*;
 
 use type_lang::eval::{Evaluator};
+use type_lang::type_check::{TypeChecker};
 use type_lang::parser::{Parser};
 
 use clap::{Arg, App};
 
 fn run(string: String) {
     let mut parser = Parser::new(string);
+    let mut type_checker = TypeChecker::new();
     let mut eval = Evaluator::new();
     let result = match parser.parse() {
         Ok(node) => node,
+        Err(err) => {
+            eprintln!("error: {:?}", err);
+            exit(1);
+        }
+    };
+
+    match type_checker.check(&result) {
+        Ok(_) => (),
         Err(err) => {
             eprintln!("error: {:?}", err);
             exit(1);
