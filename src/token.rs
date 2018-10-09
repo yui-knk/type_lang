@@ -45,6 +45,7 @@ pub enum Keyword {
     VBAR,      // '|'
     LT,        // '<'
     GT,        // '>'
+    FIX,       // 'fix'
 }
 
 use self::Kind::*;
@@ -170,6 +171,10 @@ impl Token {
         Token { kind: Keyword(Keyword::VBAR) }
     }
 
+    pub fn new_fix() -> Token {
+        Token { kind: Keyword(Keyword::FIX) }
+    }
+
     pub fn has_keyword(&self, keyword: &Keyword) -> bool {
         match self.kind {
             Kind::Keyword(ref key) if key == keyword => true,
@@ -196,6 +201,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "inr" => Some(Keyword::INR),
         "case" => Some(Keyword::CASE),
         "of" => Some(Keyword::OF),
+        "fix" => Some(Keyword::FIX),
         _ => None
     }
 }
