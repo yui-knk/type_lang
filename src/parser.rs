@@ -329,27 +329,18 @@ impl Parser {
         if token.has_keyword(&Keyword::LT) {
             let mut fields = Fields::new();
 
-            // loop {
-            //     let s = self.expect_identifier()?;
-            //     self.expect_keyword(Keyword::COLON)?;
-            //     let ty = self.parse_type()?;
-            //     fields.insert(s.clone(), Box::new(ty));
-            //     let token2 = self.next_token()?;
+            loop {
+                let s = self.expect_identifier()?;
+                self.expect_keyword(Keyword::COLON)?;
+                let ty = self.parse_type()?;
+                fields.insert(s.clone(), Box::new(ty));
+                let token2 = self.next_token()?;
 
-            //     if token2.has_keyword(&Keyword::GT) { break; }
-            //     if !token2.has_keyword(&Keyword::COMMA) {
-            //         return Err(Error::UnexpectedToken(format!("{:?}", Keyword::COMMA), token2));
-            //     }
-            // }
-
-            // TODO: 
-            let ty = self.parse_type()?;
-            fields.insert("inl".to_string(), Box::new(ty));
-            self.expect_keyword(Keyword::COMMA)?;
-            let ty = self.parse_type()?;
-            fields.insert("inr".to_string(), Box::new(ty));
-            self.expect_keyword(Keyword::GT)?;
-
+                if token2.has_keyword(&Keyword::GT) { break; }
+                if !token2.has_keyword(&Keyword::COMMA) {
+                    return Err(Error::UnexpectedToken(format!("{:?}", Keyword::COMMA), token2));
+                }
+            }
 
             return Ok(Ty::new_variant(fields));
         }
@@ -611,13 +602,11 @@ mod tests {
 
     #[test]
     fn test_parse_variant_type() {
-        let mut parser = Parser::new(" <Bool, Nat> ".to_string());
+        let mut parser = Parser::new(" <a:Bool, b:Nat> ".to_string());
         let mut fields = TyFields::new();
 
-        // fields.insert("a".to_string(), Box::new(Ty::new_bool()));
-        // fields.insert("b".to_string(), Box::new(Ty::new_nat()));
-        fields.insert("inl".to_string(), Box::new(Ty::new_bool()));
-        fields.insert("inr".to_string(), Box::new(Ty::new_nat()));
+        fields.insert("a".to_string(), Box::new(Ty::new_bool()));
+        fields.insert("b".to_string(), Box::new(Ty::new_nat()));
 
         assert_eq!(parser.parse_type(), Ok(Ty {
             kind: TyKind::Variant(fields)
