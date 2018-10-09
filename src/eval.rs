@@ -451,14 +451,14 @@ mod tests {
 
     #[test]
     fn test_eval_variant() {
-        let result = eval_string("inl 1 as <Nat, Bool>".to_string());
+        let result = eval_string("<a=1> as <a:Nat, b:Bool>".to_string());
         let mut fields = TyFields::new();
 
-        fields.insert("inl".to_string(), Box::new(Ty::new_nat()));
-        fields.insert("inr".to_string(), Box::new(Ty::new_bool()));
+        fields.insert("a".to_string(), Box::new(Ty::new_nat()));
+        fields.insert("b".to_string(), Box::new(Ty::new_bool()));
 
         assert_eq!(result, Ok(Value::new_tag(
-            "inl".to_string(),
+            "a".to_string(),
             Value::new_nat(1),
             Ty::new_variant(fields)
         )));
@@ -490,16 +490,16 @@ mod tests {
 
     #[test]
     fn test_eval_case() {
-        let result = eval_string("case inl 1     as <Nat, Bool> of inl x => x | inr y => 2".to_string());
+        let result = eval_string("case <a=1>     as <a:Nat, b:Bool> of <a=x> => x | <b=y> => 2".to_string());
         assert_eq!(result, Ok(Value::new_nat(1)));
 
-        let result = eval_string("case inr false as <Nat, Bool> of inl x => x | inr y => 2".to_string());
+        let result = eval_string("case <b=false> as <a:Nat, b:Bool> of <a=x> => x | <b=y> => 2".to_string());
         assert_eq!(result, Ok(Value::new_nat(2)));
 
-        let result = eval_string("case inl 1     as <Nat, Bool> of inl x => true | inr y => y".to_string());
+        let result = eval_string("case <a=1>     as <a:Nat, b:Bool> of <a=x> => true | <b=y> => y".to_string());
         assert_eq!(result, Ok(Value::new_true()));
 
-        let result = eval_string("case inr false as <Nat, Bool> of inl x => true | inr y => y".to_string());
+        let result = eval_string("case <b=false> as <a:Nat, b:Bool> of <a=x> => true | <b=y> => y".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
 

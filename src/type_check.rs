@@ -427,40 +427,40 @@ mod tests {
 
     #[test]
     fn test_check_variant() {
-        let result = check_type_of_string("inl 1 as <Nat, Bool>".to_string());
+        let result = check_type_of_string("<a=1> as <a:Nat, b:Bool>".to_string());
         let mut fields = Fields::new();
-        fields.insert("inl".to_string(), Box::new(Ty::new_nat()));
-        fields.insert("inr".to_string(), Box::new(Ty::new_bool()));
+        fields.insert("a".to_string(), Box::new(Ty::new_nat()));
+        fields.insert("b".to_string(), Box::new(Ty::new_bool()));
         assert_eq!(result, Ok(Ty::new_variant(fields)));
 
-        let result = check_type_of_string("inr false as <Nat, Bool>".to_string());
+        let result = check_type_of_string("<b=false> as <a:Nat, b:Bool>".to_string());
         let mut fields = Fields::new();
-        fields.insert("inl".to_string(), Box::new(Ty::new_nat()));
-        fields.insert("inr".to_string(), Box::new(Ty::new_bool()));
+        fields.insert("a".to_string(), Box::new(Ty::new_nat()));
+        fields.insert("b".to_string(), Box::new(Ty::new_bool()));
         assert_eq!(result, Ok(Ty::new_variant(fields)));
 
-        let result = check_type_of_string("inl false as <Nat, Bool>".to_string());
+        let result = check_type_of_string("<a=false> as <a:Nat, b:Bool>".to_string());
         assert!(result.is_err());
 
-        let result = check_type_of_string("inr 1 as <Nat, Bool>".to_string());
+        let result = check_type_of_string("<b=1> as <a:Nat, b:Bool>".to_string());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_check_case() {
-        let result = check_type_of_string("case inl 1     as <Nat, Bool> of inl x => x | inr y => 2".to_string());
+        let result = check_type_of_string("case <a=1>     as <a:Nat, b:Bool> of <a=x> => x | <b=y> => 2".to_string());
         assert_eq!(result, Ok(Ty::new_nat()));
 
-        let result = check_type_of_string("case inr false as <Nat, Bool> of inl x => x | inr y => 2".to_string());
+        let result = check_type_of_string("case <b=false> as <a:Nat, b:Bool> of <a=x> => x | <b=y> => 2".to_string());
         assert_eq!(result, Ok(Ty::new_nat()));
 
-        let result = check_type_of_string("case inl 1     as <Nat, Bool> of inl x => true | inr y => y".to_string());
+        let result = check_type_of_string("case <a=1>     as <a:Nat, b:Bool> of <a=x> => true | <b=y> => y".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
 
-        let result = check_type_of_string("case inr false as <Nat, Bool> of inl x => true | inr y => y".to_string());
+        let result = check_type_of_string("case <b=false> as <a:Nat, b:Bool> of <a=x> => true | <b=y> => y".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
 
-        let result = check_type_of_string("case inl 1 as <Nat, Bool> of inl x => x | inr y => y".to_string());
+        let result = check_type_of_string("case <a=1> as <a:Nat, b:Bool> of <a=x> => x | <b=y> => y".to_string());
         assert!(result.is_err());
     }
 
