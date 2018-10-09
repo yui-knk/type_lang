@@ -346,22 +346,6 @@ mod tests {
     }
 
     #[test]
-    fn test_next_token_inl() {
-        let mut lexer = Lexer::new(" inl ".to_string());
-
-        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::INL)));
-        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
-    }
-
-    #[test]
-    fn test_next_token_inr() {
-        let mut lexer = Lexer::new(" inr ".to_string());
-
-        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::INR)));
-        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
-    }
-
-    #[test]
     fn test_next_token_case() {
         let mut lexer = Lexer::new(" case ".to_string());
 

@@ -38,8 +38,6 @@ pub enum Keyword {
     LET,       // 'let'
     IN,        // 'in'
     SEMICOLON, // ';'
-    INL,       // 'inl'
-    INR,       // 'inr'
     CASE,      // 'case'
     OF,        // 'of'
     VBAR,      // '|'
@@ -197,8 +195,6 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "as" => Some(Keyword::AS),
         "let" => Some(Keyword::LET),
         "in" => Some(Keyword::IN),
-        "inl" => Some(Keyword::INL),
-        "inr" => Some(Keyword::INR),
         "case" => Some(Keyword::CASE),
         "of" => Some(Keyword::OF),
         "fix" => Some(Keyword::FIX),
