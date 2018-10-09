@@ -12,6 +12,7 @@ These features are implemented:
 - As.         "false as Bool".
 - Record.     "{10, a=false, true}".
 - Projection. "{10, a=false, true}.a".
+- Variant.    "case inr false as <Nat, Bool> of inl x => x | inr y => 2".
 - Sequencing. "unit; false".
 - Type. Only Bool, Nat, Unit and Arrow (function) types are supported.
 
