@@ -106,8 +106,7 @@ impl Parser {
             Kind::Keyword(Keyword::LBRACE) => self.parse_record_or_projection(),
             Kind::Keyword(Keyword::UNIT) => self.parse_unit(),
             Kind::Keyword(Keyword::LET) => self.parse_let(),
-            Kind::Keyword(Keyword::INL) => self.parse_tag("inl"),
-            Kind::Keyword(Keyword::INR) => self.parse_tag("inr"),
+            Kind::Keyword(Keyword::LT) => self.parse_tag(),
             Kind::Keyword(Keyword::CASE) => self.parse_case(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
@@ -259,15 +258,16 @@ impl Parser {
         }
     }
 
-    //   "inl" expr "as" type
-    // | "inr" expr "as" type
-    fn parse_tag(&mut self, tag: &str) -> Result<Node, Error> {
-        //
-        let node = self._parse_expression()?;
+    // "<" label "=" expr ">" "as" type
+    fn parse_tag(&mut self) -> Result<Node, Error> {
+        let label = self.expect_identifier()?;
+        self.expect_keyword(Keyword::EQ)?;
+        let node = self.parse_expression()?;
+        self.expect_keyword(Keyword::GT)?;
         self.expect_keyword(Keyword::AS)?;
         let ty = self.parse_type()?;
 
-        Ok(Node::new_tag(tag.to_string(), node, ty))
+        Ok(Node::new_tag(label, node, ty))
     }
 
     // "case" expr "of" "inl" variable "=>" expr "|" "inr" variable "=>" expr
@@ -675,19 +675,19 @@ mod tests {
 
     #[test]
     fn test_parse_tag() {
-        let mut parser = Parser::new(" inl false as Bool".to_string());
+        let mut parser = Parser::new(" <bl=false> as Bool".to_string());
         assert_eq!(parser.parse(), Ok(Node
             { kind: Kind::Tag(
-                "inl".to_string(),
+                "bl".to_string(),
                 Box::new(Node { kind: Kind::Bool(false) }),
                 Box::new(Ty::new_bool())
             )}
         ));
 
-        let mut parser = Parser::new(" inr 1 as Nat ".to_string());
+        let mut parser = Parser::new(" <nl=1> as Nat ".to_string());
         assert_eq!(parser.parse(), Ok(Node
             { kind: Kind::Tag(
-                "inr".to_string(),
+                "nl".to_string(),
                 Box::new(Node::new_nat(1)),
                 Box::new(Ty::new_nat())
             )}
