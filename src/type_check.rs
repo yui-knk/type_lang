@@ -462,6 +462,12 @@ mod tests {
 
         let result = check_type_of_string("case <a=1> as <a:Nat, b:Bool> of <a=x> => x | <b=y> => y".to_string());
         assert!(result.is_err());
+
+        let result = check_type_of_string("case <c=false> as <a:Nat, b:Bool> of <a=x> => true | <b=y> => y".to_string());
+        assert!(result.is_err());
+
+        let result = check_type_of_string("case <b=false> as <a:Nat, b:Bool> of <a=x> => true | <c=y> => y".to_string());
+        assert!(result.is_err());
     }
 
     #[test]

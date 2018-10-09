@@ -501,6 +501,9 @@ mod tests {
 
         let result = eval_string("case <b=false> as <a:Nat, b:Bool> of <a=x> => true | <b=y> => y".to_string());
         assert_eq!(result, Ok(Value::new_false()));
+
+        let result = eval_string("case <c=false> as <a:Nat, b:Bool, c:Bool> of <a=x> => true | <b=y> => y | <c=z> => z".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
     }
 
     #[test]
