@@ -264,7 +264,20 @@ impl TypeChecker {
                     }
                 }
             },
-            _ => panic!("")
+            Kind::Fix(ref node) => {
+                let node_type = self.type_of(node)?;
+
+                match node_type.kind {
+                    TyKind::Arrow(ty1, ty2) => {
+                        if ty1 == ty2 { return Ok(*ty2); }
+                        return Err(Error::TypeMismatch(format!(
+                            "Domain/Resutl type mismatch. domain: {:?}, result: {:?}", ty1.kind, ty2.kind)));
+
+                    },
+                    _ => Err(Error::TypeMismatch(format!("{:?} is not arrow type.", node_type.kind)))
+                }
+            },
+            // _ => panic!("")
         }
     }
 }
@@ -393,6 +406,18 @@ mod tests {
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
         )));
+    }
+
+    #[test]
+    fn test_check_fix() {
+        let result = check_type_of_string("fix -> x : Bool { false } ".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("fix -> x : Bool -> Bool { x }".to_string());
+        assert_eq!(result, Ok(Ty::new_arrow(Ty::new_bool(), Ty::new_bool())));
+
+        let result = check_type_of_string("fix -> x : Bool -> Bool { false }".to_string());
+        assert!(result.is_err());
     }
 
     #[test]
