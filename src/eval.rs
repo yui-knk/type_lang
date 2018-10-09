@@ -71,7 +71,8 @@ impl Evaluator {
             Kind::Unit => self.eval_unit(node),
             Kind::As(..) => self.eval_as(node),
             Kind::Tag(..) => self.eval_tag(node),
-            _ => panic!("")
+            Kind::Case(..) => self.eval_case(node),
+            // _ => panic!("")
         }
     }
 
@@ -153,6 +154,32 @@ impl Evaluator {
             _ => Err(Error::UnexpectedNode(format!("eval_tag {:?}", node)))
         }
 
+    }
+
+    fn eval_case(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Case(variant, cases) => {
+                let variant_value = self.eval(*variant)?;
+
+                match variant_value.kind {
+                    ValueKind::Tag(s, v, _) => {
+                       let case_node_opt = cases.get(&s);
+
+                       match case_node_opt {
+                            Some((var, case_node)) => {
+                                self.env.push(var.clone(), *v);
+                                let case_value = self.eval(*case_node.clone())?;
+                                self.env.pop();
+                                Ok(case_value)
+                            },
+                            None => Err(Error::IndexError(format!("eval_case {:?}", s)))
+                       }
+                    },
+                    _ => Err(Error::UnexpectedValue(format!("eval_case {:?}", variant_value)))
+                }
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_case {:?}", node)))
+        }
     }
 
     fn eval_bool(&self, node: Node) -> Result<Value, Error> {
@@ -458,6 +485,21 @@ mod tests {
         assert_eq!(result, Ok(Value::new_nat(10)));
 
         let result = eval_string(" {10, a=false, true}.1 ".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+    }
+
+    #[test]
+    fn test_eval_case() {
+        let result = eval_string("case inl 1     as <Nat, Bool> of inl x => x | inr y => 2".to_string());
+        assert_eq!(result, Ok(Value::new_nat(1)));
+
+        let result = eval_string("case inr false as <Nat, Bool> of inl x => x | inr y => 2".to_string());
+        assert_eq!(result, Ok(Value::new_nat(2)));
+
+        let result = eval_string("case inl 1     as <Nat, Bool> of inl x => true | inr y => y".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
+
+        let result = eval_string("case inr false as <Nat, Bool> of inl x => true | inr y => y".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
 
