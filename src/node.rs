@@ -82,6 +82,7 @@ pub enum Kind {
     Tag(String, Box<Node>, Box<Ty>), // tag (inl|inr), value, type of variant
     Case(Box<Node>, Cases), // variant, (tag, (variable, body))
     As(Box<Node>, Box<Ty>), // expression, ascribed type
+    Fix(Box<Node>), // generator node
 }
 
 use self::Kind::*;
@@ -121,6 +122,10 @@ impl Node {
 
     pub fn new_pred(node: Node) -> Node {
         Node { kind: Pred(Box::new(node)) }
+    }
+
+    pub fn new_fix(node: Node) -> Node {
+        Node { kind: Fix(Box::new(node)) }
     }
 
     pub fn new_bool(bool: bool) -> Node {

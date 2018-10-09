@@ -108,6 +108,7 @@ impl Parser {
             Kind::Keyword(Keyword::LET) => self.parse_let(),
             Kind::Keyword(Keyword::LT) => self.parse_tag(),
             Kind::Keyword(Keyword::CASE) => self.parse_case(),
+            Kind::Keyword(Keyword::FIX) => self.parse_fix(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -268,6 +269,12 @@ impl Parser {
         let ty = self.parse_type()?;
 
         Ok(Node::new_tag(label, node, ty))
+    }
+
+    // "fix" expr
+    fn parse_fix(&mut self) -> Result<Node, Error> {
+        let node = self.parse_expression()?;
+        Ok(Node::new_fix(node))
     }
 
     // "case" expr "of" "<" label "=" variable ">" "=>" expr ("|" "<" label "=" variable ">" "=>" expr) ...
@@ -545,6 +552,27 @@ mod tests {
                 Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_arrow(Ty::new_bool(), Ty::new_bool())))
             )}
         ));
+    }
+
+    #[test]
+    fn test_parse_fix() {
+        let mut parser = Parser::new("fix -> x : Bool -> Bool { false } ".to_string());
+        assert_eq!(parser.parse(), Ok(Node::new_fix(
+            Node { kind: Kind::Lambda(
+                "x".to_string(),
+                Box::new(Node { kind: Kind::Bool(false) }),
+                Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_bool()))
+            )}
+        )));
+
+        let mut parser = Parser::new("fix -> x : Bool { false } ".to_string());
+        assert_eq!(parser.parse(), Ok(Node::new_fix(
+            Node { kind: Kind::Lambda(
+                "x".to_string(),
+                Box::new(Node { kind: Kind::Bool(false) }),
+                Box::new(Ty::new_bool())
+            )}
+        )));
     }
 
     #[test]
