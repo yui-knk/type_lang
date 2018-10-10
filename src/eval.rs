@@ -696,6 +696,36 @@ mod tests {
             } 10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_nat(20)));
+
+        // iseven function
+        let result = eval_string("
+            (fix -> ie:Nat->Bool {
+                -> x:Nat {
+                    if iszero x
+                    then true
+                    else
+                      if iszero pred x
+                      then false
+                      else (ie pred pred x)
+                }
+            } 10)
+        ".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
+
+        // iseven function
+        let result = eval_string("
+            (fix -> ie:Nat->Bool {
+                -> x:Nat {
+                    if iszero x
+                    then true
+                    else
+                      if iszero pred x
+                      then false
+                      else (ie pred pred x)
+                }
+            } 9)
+        ".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
     }
 
     #[test]
