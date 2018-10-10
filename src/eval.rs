@@ -72,7 +72,8 @@ impl Evaluator {
             Kind::As(..) => self.eval_as(node),
             Kind::Tag(..) => self.eval_tag(node),
             Kind::Case(..) => self.eval_case(node),
-            _ => panic!("")
+            Kind::Fix(..) => self.eval_fix(node),
+            // _ => panic!("")
         }
     }
 
@@ -154,6 +155,28 @@ impl Evaluator {
             _ => Err(Error::UnexpectedNode(format!("eval_tag {:?}", node)))
         }
 
+    }
+
+    fn eval_fix(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Fix(node) => {
+                let node_value = self.eval(*node)?;
+                let node2 = match node_value.clone().kind {
+                    ValueKind::Lambda(n) => n,
+                    _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", node_value.kind)))
+                };
+                let (variable, body) = match node2.kind {
+                    Kind::Lambda(v, b, _) => (v, b),
+                    _ => return Err(Error::UnexpectedNode(format!("eval_fix expects Lambda node: {:?}", node2)))
+                };
+
+                self.env.push(variable, node_value);
+                let body_val = self.eval(*body)?;
+                self.env.pop();
+                Ok(body_val)
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_fix expects Fix node: {:?}", node)))
+        }
     }
 
     fn eval_case(&mut self, node: Node) -> Result<Value, Error> {
@@ -537,6 +560,21 @@ mod tests {
         let lambda = Node::new_lambda("y".to_string(), node_false, ty);
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
+
+    // #[test]
+    // fn test_eval_fix() {
+    //     // 10 + x function
+    //     let result = eval_string("
+    //         (fix -> ie:Nat->Nat {
+    //             -> x:Nat {
+    //                 if iszero x
+    //                 then 10
+    //                 else let y = ie 
+    //             }
+    //         } 10)
+    //     ".to_string());
+    //     assert_eq!(result, Ok(Value::new_false()));
+    // }
 
     #[test]
     fn test_eval_unit_derived_form() {
