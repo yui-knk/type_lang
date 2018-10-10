@@ -162,6 +162,9 @@ impl Node {
     pub fn new_projection(record: Node, label: String) -> Node {
         Node { kind: Projection(Box::new(record), label) }
     }
+    pub fn new_record_from_fields(fields: Fields) -> Node {
+        Node { kind: Record(fields) }
+    }
 
     pub fn new_record(fields: Vec<(Option<String>, Node)>) -> Node {
         let mut count = 0;

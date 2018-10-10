@@ -1,4 +1,4 @@
-use node::{Node, Kind};
+use node::{Node, Kind, Fields as NodeFields, Cases};
 use value::{Value, Kind as ValueKind, Fields};
 
 struct Env {
@@ -157,8 +157,116 @@ impl Evaluator {
 
     }
 
-    fn eval_fix(&mut self, node: Node) -> Result<Value, Error> {
+    fn replace_variable_with_fix_node(&self, variable: &str, fix_node: &Node, node: Node) -> Node {
         match node.kind {
+              Kind::NoneExpression
+            | Kind::Bool(..)
+            | Kind::Zero
+            | Kind::Unit => {
+                node
+            },
+            Kind::Succ(arg) => {
+                Node::new_succ(
+                    self.replace_variable_with_fix_node(variable, fix_node, *arg)
+                )
+            },
+            Kind::Pred(arg) => {
+                Node::new_pred(
+                    self.replace_variable_with_fix_node(variable, fix_node, *arg)
+                )
+            },
+            Kind::Apply(rec, arg) => {
+                let rec2 = self.replace_variable_with_fix_node(variable, fix_node, *rec);
+                let arg2 = self.replace_variable_with_fix_node(variable, fix_node, *arg);
+                Node::new_apply(rec2, arg2)
+            },
+            Kind::Let(s, bound, body) => {
+                if s == variable {
+                    // variable is newly bound, so need not to replace.
+                    Node::new_let(s, *bound, *body)
+                } else {
+                    let bound2 = self.replace_variable_with_fix_node(variable, fix_node, *bound);
+                    let body2 = self.replace_variable_with_fix_node(variable, fix_node, *body);
+                    Node::new_let(s, bound2, body2)
+                }
+            },
+            Kind::Lambda(s, body, ty) => {
+                if s == variable {
+                    // variable is newly bound, so need not to replace.
+                    Node::new_lambda(s, *body, *ty)
+                } else {
+                    let body2 = self.replace_variable_with_fix_node(variable, fix_node, *body);
+                    Node::new_lambda(s, body2, *ty)
+                }
+            },
+            Kind::VarRef(ref s) => {
+                if s == variable {
+                    fix_node.clone()
+                } else {
+                    node.clone()
+                }
+            },
+            Kind::If(cond, then_expr, else_expr) => {
+                let c = self.replace_variable_with_fix_node(variable, fix_node, *cond);
+                let t = self.replace_variable_with_fix_node(variable, fix_node, *then_expr);
+                let e = self.replace_variable_with_fix_node(variable, fix_node, *else_expr);
+                Node::new_if(c, t, e)
+            },
+            Kind::Iszero(op) => {
+                let op2 = self.replace_variable_with_fix_node(variable, fix_node, *op);
+                Node::new_iszero(op2)
+            },
+            Kind::Record(fields) => {
+                let mut fields2 = NodeFields::new();
+
+                for (s, n) in fields.iter() {
+                    fields2.insert(
+                        s.to_string(),
+                        Box::new(self.replace_variable_with_fix_node(variable, fix_node, *n.clone()))
+                    );
+                }
+
+                Node::new_record_from_fields(fields2)
+            },
+            Kind::Projection(record, s) => {
+                let record2 = self.replace_variable_with_fix_node(variable, fix_node, *record);
+                Node::new_projection(record2, s)
+            },
+            Kind::Tag(s, value, ty) => {
+                let value2 = self.replace_variable_with_fix_node(variable, fix_node, *value);
+                Node::new_tag(s, value2, *ty)
+            },
+            Kind::Case(variant, cases) => {
+                let mut cases2 = Cases::new();
+                let variant2 = self.replace_variable_with_fix_node(variable, fix_node, *variant);
+                for (tag, (var, body)) in cases.iter() {
+                    if *var == variable {
+                        // variable is newly bound, so need not to replace.
+                        cases2.insert(tag.to_string(), var.to_string(), *body.clone());
+                    } else {
+                        cases2.insert(
+                            tag.to_string(), var.to_string(),
+                            self.replace_variable_with_fix_node(variable, fix_node, *body.clone())
+                        );
+                    }
+                }
+
+                Node::new_case(variant2, cases2)
+            },
+            Kind::As(expr, ty) => {
+                let expr2 = self.replace_variable_with_fix_node(variable, fix_node, *expr);
+                Node::new_as(expr2, *ty)
+            },
+            Kind::Fix(generator) => {
+                let generator2 = self.replace_variable_with_fix_node(variable, fix_node, *generator);
+                Node::new_fix(generator2)
+            },
+            // _ => panic!("")
+        }
+    }
+
+    fn eval_fix(&mut self, fix_node: Node) -> Result<Value, Error> {
+        match fix_node.clone().kind {
             Kind::Fix(node) => {
                 let node_value = self.eval(*node)?;
                 let node2 = match node_value.clone().kind {
@@ -170,12 +278,11 @@ impl Evaluator {
                     _ => return Err(Error::UnexpectedNode(format!("eval_fix expects Lambda node: {:?}", node2)))
                 };
 
-                self.env.push(variable, node_value);
-                let body_val = self.eval(*body)?;
-                self.env.pop();
-                Ok(body_val)
+                let replaced = self.replace_variable_with_fix_node(&variable, &fix_node, *body);
+                let replaced_val = self.eval(replaced)?;
+                Ok(replaced_val)
             },
-            _ => Err(Error::UnexpectedNode(format!("eval_fix expects Fix node: {:?}", node)))
+            _ => Err(Error::UnexpectedNode(format!("eval_fix expects Fix node: {:?}", fix_node)))
         }
     }
 
@@ -561,20 +668,35 @@ mod tests {
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
 
-    // #[test]
-    // fn test_eval_fix() {
-    //     // 10 + x function
-    //     let result = eval_string("
-    //         (fix -> ie:Nat->Nat {
-    //             -> x:Nat {
-    //                 if iszero x
-    //                 then 10
-    //                 else let y = ie 
-    //             }
-    //         } 10)
-    //     ".to_string());
-    //     assert_eq!(result, Ok(Value::new_false()));
-    // }
+    #[test]
+    fn test_eval_associativity() {
+        let result = eval_string("succ 0".to_string());
+        assert_eq!(result, Ok(Value::new_nat(1)));
+
+        let result = eval_string("pred succ 0".to_string());
+        assert_eq!(result, Ok(Value::new_nat(0)));
+
+        let result = eval_string("iszero succ 0".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+
+        let result = eval_string("iszero pred succ 0".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
+    }
+
+    #[test]
+    fn test_eval_fix() {
+        // 10 + x function
+        let result = eval_string("
+            (fix -> ie:Nat->Nat {
+                -> x:Nat {
+                    if iszero x
+                    then 10
+                    else succ (ie pred x)
+                }
+            } 10)
+        ".to_string());
+        assert_eq!(result, Ok(Value::new_nat(20)));
+    }
 
     #[test]
     fn test_eval_unit_derived_form() {
