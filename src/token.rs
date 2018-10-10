@@ -44,6 +44,7 @@ pub enum Keyword {
     LT,        // '<'
     GT,        // '>'
     FIX,       // 'fix'
+    LETREC,    // 'letrec'
 }
 
 use self::Kind::*;
@@ -173,6 +174,10 @@ impl Token {
         Token { kind: Keyword(Keyword::FIX) }
     }
 
+    pub fn new_letrec() -> Token {
+        Token { kind: Keyword(Keyword::LETREC) }
+    }
+
     pub fn has_keyword(&self, keyword: &Keyword) -> bool {
         match self.kind {
             Kind::Keyword(ref key) if key == keyword => true,
@@ -198,6 +203,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "case" => Some(Keyword::CASE),
         "of" => Some(Keyword::OF),
         "fix" => Some(Keyword::FIX),
+        "letrec" => Some(Keyword::LETREC),
         _ => None
     }
 }
