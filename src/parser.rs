@@ -109,6 +109,7 @@ impl Parser {
             Kind::Keyword(Keyword::LT) => self.parse_tag(),
             Kind::Keyword(Keyword::CASE) => self.parse_case(),
             Kind::Keyword(Keyword::FIX) => self.parse_fix(),
+            Kind::Keyword(Keyword::LETREC) => self.parse_letrec(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -275,6 +276,24 @@ impl Parser {
     fn parse_fix(&mut self) -> Result<Node, Error> {
         let node = self.parse_expression()?;
         Ok(Node::new_fix(node))
+    }
+
+    // "letrec" variable ":" type "=" lambda_body "in" body
+    //
+    //    "letrec x : T = t1 in t2"
+    // is "let x = fix (-> x : T { t1 }) in t2"
+    fn parse_letrec(&mut self) -> Result<Node, Error> {
+        let var = self.expect_identifier()?;
+        self.expect_keyword(Keyword::COLON)?;
+        let ty = self.parse_type()?;
+        self.expect_keyword(Keyword::EQ)?;
+        let lambda_body = self.parse_expression()?;
+        self.expect_keyword(Keyword::IN)?;
+        let body = self.parse_expression()?;
+
+        let lambda = Node::new_lambda(var.clone(), lambda_body, ty);
+        let fix = Node::new_fix(lambda);
+        Ok(Node::new_let(var, fix, body))
     }
 
     // "case" expr "of" "<" label "=" variable ">" "=>" expr ("|" "<" label "=" variable ">" "=>" expr) ...

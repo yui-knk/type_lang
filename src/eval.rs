@@ -729,6 +729,52 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_letrec() {
+        // 10 + x function
+        let result = eval_string("
+            letrec ie:Nat->Nat =
+                -> x:Nat {
+                    if iszero x
+                    then 10
+                    else succ (ie pred x)}
+            in
+                (ie 10)
+        ".to_string());
+        assert_eq!(result, Ok(Value::new_nat(20)));
+
+        // iseven function
+        let result = eval_string("
+            letrec ie:Nat->Bool =
+                -> x:Nat {
+                    if iszero x
+                    then true
+                    else
+                      if iszero pred x
+                      then false
+                      else (ie pred pred x)
+                }
+            in
+                (ie 10)
+        ".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
+
+        // iseven function
+        let result = eval_string("
+            letrec ie:Nat->Bool =
+                -> x:Nat {
+                    if iszero x
+                    then true
+                    else
+                      if iszero pred x
+                      then false
+                      else (ie pred pred x)
+                }
+            in
+                (ie 9)
+        ".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+    }
+    #[test]
     fn test_eval_unit_derived_form() {
         let result = eval_string("unit; false".to_string());
         assert_eq!(result, Ok(Value::new_false()));

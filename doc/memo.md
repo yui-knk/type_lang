@@ -24,3 +24,6 @@ TODO:
 
 - Record type syntax
 - Type alias
+
+# How to implement fix operator
+
