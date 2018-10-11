@@ -271,13 +271,40 @@ impl TypeChecker {
                     TyKind::Arrow(ty1, ty2) => {
                         if ty1 == ty2 { return Ok(*ty2); }
                         return Err(Error::TypeMismatch(format!(
-                            "Domain/Resutl type mismatch. domain: {:?}, result: {:?}", ty1.kind, ty2.kind)));
+                            "Domain/Result type mismatch. domain: {:?}, result: {:?}", ty1.kind, ty2.kind)));
 
                     },
                     _ => Err(Error::TypeMismatch(format!("{:?} is not arrow type.", node_type.kind)))
                 }
             },
-            _ => panic!("")
+            Kind::Ref(ref node) => {
+                let node_type = self.type_of(node)?;
+                Ok(Ty::new_ref(node_type))
+            },
+            Kind::Deref(ref node) => {
+                let node_type = self.type_of(node)?;
+
+                match node_type.kind {
+                    TyKind::Ref(ty) => {
+                        Ok(*ty)
+                    },
+                    _ => Err(Error::TypeMismatch(format!("{:?} is not ref type.", node_type.kind)))
+                }
+            },
+            Kind::Assign(ref left, ref right) => {
+                let left_type = self.type_of(left)?;
+                let right_type = self.type_of(right)?;
+
+                match left_type.kind {
+                    TyKind::Ref(ty) => {
+                        if right_type == *ty { return Ok(Ty::new_unit()); }
+                        return Err(Error::TypeMismatch(format!(
+                            "Left/Right type mismatch. left: {:?}, right: {:?}", left.kind, right.kind)));
+                    },
+                    _ => Err(Error::TypeMismatch(format!("{:?} is not ref type.", left_type.kind)))
+                }
+            },
+            // _ => panic!("")
         }
     }
 }
@@ -417,6 +444,30 @@ mod tests {
         assert_eq!(result, Ok(Ty::new_arrow(Ty::new_bool(), Ty::new_bool())));
 
         let result = check_type_of_string("fix -> x : Bool -> Bool { false }".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_ref() {
+        let result = check_type_of_string("ref false".to_string());
+        assert_eq!(result, Ok(Ty::new_ref(Ty::new_bool())));
+    }
+
+    #[test]
+    fn test_check_deref() {
+        let result = check_type_of_string("! ref false".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        let result = check_type_of_string("! false".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_assign() {
+        let result = check_type_of_string("let x = ref false in x := true".to_string());
+        assert_eq!(result, Ok(Ty::new_unit()));
+
+        let result = check_type_of_string("ref false := 1".to_string());
         assert!(result.is_err());
     }
 

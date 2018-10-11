@@ -40,6 +40,7 @@ pub enum Kind {
     Record(Fields),
     Variant(Fields),
     Unit, // the only value of Unit type is "unit"
+    Ref(Box<Ty>), // `ref 1` has `Ref Nat` type
 }
 
 use self::Kind::*;
@@ -67,6 +68,10 @@ impl Ty {
 
     pub fn new_variant(fields: Fields) -> Ty {
         Ty { kind: Variant(fields) }
+    }
+
+    pub fn new_ref(ty: Ty) -> Ty {
+        Ty { kind: Ref(Box::new(ty)) }
     }
 }
 
