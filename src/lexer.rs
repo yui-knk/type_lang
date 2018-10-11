@@ -56,6 +56,7 @@ impl Lexer {
             '|' => self.read_vbar(),
             '<' => self.read_lt(),
             '>' => self.read_gt(),
+            '!' => self.read_bang(),
             'B' => self.read_bool(),
             'N' => self.read_nnat(),
             '0'...'9' => self.read_nat(),
@@ -156,6 +157,11 @@ impl Lexer {
         Ok(Token::new_gt())
     }
 
+    fn read_bang(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_bang())
+    }
+
     fn read_lbrace(&mut self) -> Result<Token, Error> {
         self.next_char();
         Ok(Token::new_lbrace())
@@ -178,6 +184,12 @@ impl Lexer {
 
     fn read_colon(&mut self) -> Result<Token, Error> {
         self.next_char();
+
+        if self.peek_char()? == '=' {
+            self.next_char();
+            return Ok(Token::new_coloneq());
+        }
+
         Ok(Token::new_colon())
     }
 
@@ -447,6 +459,14 @@ mod tests {
     }
 
     #[test]
+    fn test_next_token_coloneq() {
+        let mut lexer = Lexer::new(" := ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::COLONEQ)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
     fn test_next_token_semicolon() {
         let mut lexer = Lexer::new(" ; ".to_string());
 
@@ -475,6 +495,22 @@ mod tests {
         let mut lexer = Lexer::new(" . ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::DOT)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_bang() {
+        let mut lexer = Lexer::new(" ! ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::BANG)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_ref() {
+        let mut lexer = Lexer::new(" ref ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::REF)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
@@ -551,9 +587,9 @@ mod tests {
 
     #[test]
     fn test_next_token_unknowntoken() {
-        let mut lexer = Lexer::new(" !".to_string());
+        let mut lexer = Lexer::new(" ?".to_string());
 
-        assert_eq!(lexer.next_token(), Err(Error::UnknownToken("!".to_string())));
+        assert_eq!(lexer.next_token(), Err(Error::UnknownToken("?".to_string())));
         // assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 }

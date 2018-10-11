@@ -45,6 +45,9 @@ pub enum Keyword {
     GT,        // '>'
     FIX,       // 'fix'
     LETREC,    // 'letrec'
+    BANG,      // '!'
+    COLONEQ,   // ':='
+    REF,       // 'ref'
 }
 
 use self::Kind::*;
@@ -178,6 +181,18 @@ impl Token {
         Token { kind: Keyword(Keyword::LETREC) }
     }
 
+    pub fn new_bang() -> Token {
+        Token { kind: Keyword(Keyword::BANG) }
+    }
+
+    pub fn new_coloneq() -> Token {
+        Token { kind: Keyword(Keyword::COLONEQ) }
+    }
+
+    pub fn new_ref() -> Token {
+        Token { kind: Keyword(Keyword::REF) }
+    }
+
     pub fn has_keyword(&self, keyword: &Keyword) -> bool {
         match self.kind {
             Kind::Keyword(ref key) if key == keyword => true,
@@ -204,6 +219,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "of" => Some(Keyword::OF),
         "fix" => Some(Keyword::FIX),
         "letrec" => Some(Keyword::LETREC),
+        "ref" => Some(Keyword::REF),
         _ => None
     }
 }
