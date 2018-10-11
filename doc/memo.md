@@ -27,3 +27,10 @@ TODO:
 
 # How to implement fix operator
 
+I use big-step structural operational semantics (eval function of Evaluator). I rewrite nodes of AST recursively when evaluate fix operator (eval_fix function calls replace_variable_with_fix_node function). Because if I simply replace `FIX(LAMBDA (x, expr))` to these formats, both of them are recursively evaluated and cause infinite loop:
+
+(1) `LET(x, FIX(LAMBDA (x, expr)), expr)`
+(2) `APPLY(LAMBDA(x, expr), FIX(LAMBDA (x, expr)))`
+
+`eval_let` function evaluats bound value first, so `FIX(LAMBDA (x, expr))` is evaluated and generates `LET(x, FIX(LAMBDA (x, expr)), expr)`. This causes infinite loop for (1).
+`eval_apply` function evaluats arguments first, so `FIX(LAMBDA (x, expr))` is evaluated and generates `APPLY(LAMBDA(x, expr), FIX(LAMBDA (x, expr)))`. This causes infinite loop for (2).
