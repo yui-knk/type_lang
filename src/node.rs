@@ -83,6 +83,9 @@ pub enum Kind {
     Case(Box<Node>, Cases), // variant, (tag, (variable, body))
     As(Box<Node>, Box<Ty>), // expression, ascribed type
     Fix(Box<Node>), // generator node
+    Ref(Box<Node>), // bound value
+    Deref(Box<Node>), // reference value
+    Assign(Box<Node>, Box<Node>), // reference, value
 }
 
 use self::Kind::*;
@@ -126,6 +129,18 @@ impl Node {
 
     pub fn new_fix(node: Node) -> Node {
         Node { kind: Fix(Box::new(node)) }
+    }
+
+    pub fn new_ref(node: Node) -> Node {
+        Node { kind: Ref(Box::new(node)) }
+    }
+
+    pub fn new_deref(node: Node) -> Node {
+        Node { kind: Deref(Box::new(node)) }
+    }
+
+    pub fn new_assign(left: Node, right: Node) -> Node {
+        Node { kind: Assign(Box::new(left), Box::new(right)) }
     }
 
     pub fn new_bool(bool: bool) -> Node {

@@ -277,7 +277,7 @@ impl TypeChecker {
                     _ => Err(Error::TypeMismatch(format!("{:?} is not arrow type.", node_type.kind)))
                 }
             },
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 }

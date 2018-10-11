@@ -72,8 +72,14 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Result<Node, Error> {
-        let node = self._parse_expression()?;
-        let token = self.next_token()?;
+        let mut node = self._parse_expression()?;
+        let mut token = self.next_token()?;
+
+        if token.has_keyword(&Keyword::COLONEQ) {
+            let node2 = self.parse_expression()?;
+            node = Node::new_assign(node, node2);
+            token = self.next_token()?;
+        }
 
         if token.has_keyword(&Keyword::AS) {
             let ty = self.parse_type()?;
@@ -110,6 +116,8 @@ impl Parser {
             Kind::Keyword(Keyword::CASE) => self.parse_case(),
             Kind::Keyword(Keyword::FIX) => self.parse_fix(),
             Kind::Keyword(Keyword::LETREC) => self.parse_letrec(),
+            Kind::Keyword(Keyword::REF) => self.parse_ref(),
+            Kind::Keyword(Keyword::BANG) => self.parse_deref(),
             Kind::EOF => Ok(Node::new_none_expression()),
             _ => Err(Error::NotSupported(token))
         }
@@ -276,6 +284,18 @@ impl Parser {
     fn parse_fix(&mut self) -> Result<Node, Error> {
         let node = self.parse_expression()?;
         Ok(Node::new_fix(node))
+    }
+
+    // "ref" expr
+    fn parse_ref(&mut self) -> Result<Node, Error> {
+        let node = self.parse_expression()?;
+        Ok(Node::new_ref(node))
+    }
+
+    // "!" expr
+    fn parse_deref(&mut self) -> Result<Node, Error> {
+        let node = self.parse_expression()?;
+        Ok(Node::new_deref(node))
     }
 
     // "letrec" variable ":" type "=" lambda_body "in" body
@@ -741,6 +761,40 @@ mod tests {
                 Box::new(Node { kind: Kind::Bool(true) }),
                 Box::new(Node { kind: Kind::Bool(false) }),
                 Box::new(Node { kind: Kind::Bool(true) })
+            )}
+        ));
+    }
+
+    #[test]
+    fn test_parse_ref() {
+        let mut parser = Parser::new("ref false".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Ref(
+                Box::new(Node { kind: Kind::Bool(false) }),
+            )}
+        ));
+    }
+
+    #[test]
+    fn test_parse_deref() {
+        let mut parser = Parser::new("!false".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Deref(
+                Box::new(Node { kind: Kind::Bool(false) }),
+            )}
+        ));
+    }
+
+    #[test]
+    fn test_parse_assign() {
+        let mut parser = Parser::new("a := b".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Assign(
+                Box::new(Node { kind: Kind::VarRef("a".to_string()) }),
+                Box::new(Node { kind: Kind::VarRef("b".to_string()) }),
             )}
         ));
     }

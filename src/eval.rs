@@ -73,7 +73,7 @@ impl Evaluator {
             Kind::Tag(..) => self.eval_tag(node),
             Kind::Case(..) => self.eval_case(node),
             Kind::Fix(..) => self.eval_fix(node),
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 
@@ -261,7 +261,7 @@ impl Evaluator {
                 let generator2 = self.replace_variable_with_fix_node(variable, fix_node, *generator);
                 Node::new_fix(generator2)
             },
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 
