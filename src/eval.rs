@@ -116,7 +116,7 @@ impl Evaluator {
         }
     }
 
-    pub fn _eval(&mut self, node: Node) -> Result<Node, Error> {
+    fn _eval(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
             Kind::Bool(_) => self.eval_bool(node),
