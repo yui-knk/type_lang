@@ -58,6 +58,10 @@ impl Env {
     fn update_store(&mut self, l: Location, node: Node) {
         self.store[l] = Box::new(node);
     }
+
+    fn get_from_store(&self, l: Location) -> &Node {
+        &(*self.store[l])
+    }
 }
 
 impl Evaluator {
@@ -75,7 +79,7 @@ impl Evaluator {
         }
     }
 
-    fn into_value(&mut self, node: Node) -> Result<Value, Error> {
+    fn into_value(&self, node: Node) -> Result<Value, Error> {
         match node.kind {
             Kind::NoneExpression => Ok(Value::new_none()),
             Kind::Bool(b) => {
@@ -103,7 +107,10 @@ impl Evaluator {
             },
             Kind::Unit => Ok(Value::new_unit()),
             Kind::Lambda(..) => Ok(Value::new_lambda(node)),
-            // Loc(l) => 
+            Kind::Loc(l) => {
+                let node = self.env.get_from_store(l);
+                self.into_value(node.clone())
+            },
             _ => Err(Error::CanNotConvertToValue(format!("This is not a value node: {:?}", node)))
         }
     }
@@ -193,14 +200,15 @@ impl Evaluator {
     fn eval_deref(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Deref(re) => {
-                match re.kind {
+                let re_val = self._eval(*re)?;
+                match re_val.kind {
                     Kind::Loc(l) => {
                         Ok(*self.env.store[l].clone())
                     },
-                    _ => Err(Error::UnexpectedNode(format!("eval_loc {:?}", re)))
+                    _ => Err(Error::UnexpectedNode(format!("eval_deref {:?}", re_val)))
                 }
             },
-            _ => Err(Error::UnexpectedNode(format!("eval_loc {:?}", node)))
+            _ => Err(Error::UnexpectedNode(format!("eval_deref {:?}", node)))
         }
     }
 
@@ -675,23 +683,33 @@ mod tests {
         assert_eq!(result, Ok(Value::new_false()));
     }
 
-    // #[test]
-    // fn test_eval_deref() {
-    //     let result = eval_string(" let x = 1 in x ".to_string());
-    //     assert_eq!(result, Ok(Value::new_nat(1)));
+    #[test]
+    fn test_eval_ref() {
+        let result = eval_string("ref true".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
 
-    //     let result = eval_string(" let x = 1 in false ".to_string());
-    //     assert_eq!(result, Ok(Value::new_false()));
-    // }
+        let result = eval_string("let x = ref false in x".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+    }
 
-    // #[test]
-    // fn test_eval_assign() {
-    //     let result = eval_string(" let x = 1 in x ".to_string());
-    //     assert_eq!(result, Ok(Value::new_nat(1)));
+    #[test]
+    fn test_eval_deref() {
+        let result = eval_string("! ref true".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
 
-    //     let result = eval_string(" let x = 1 in false ".to_string());
-    //     assert_eq!(result, Ok(Value::new_false()));
-    // }
+        let result = eval_string("let x = ref false in !x".to_string());
+        assert_eq!(result, Ok(Value::new_false()));
+    }
+
+    #[test]
+    fn test_eval_assign() {
+        let result = eval_string("
+            let x = ref false in
+                let y = x := true in
+                    x
+        ".to_string());
+        assert_eq!(result, Ok(Value::new_true()));
+    }
 
     #[test]
     fn test_eval_variant() {
