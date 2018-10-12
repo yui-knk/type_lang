@@ -205,8 +205,6 @@ impl Evaluator {
     }
 
     fn eval_apply(&mut self, node: Node) -> Result<Node, Error> {
-        let error_message = format!("eval_apply {:?}", node);
-
         match node.kind {
             Kind::Apply(rec, arg) => {
                 let arg_val = self._eval(*arg)?;
