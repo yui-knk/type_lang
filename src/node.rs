@@ -1,4 +1,5 @@
 use ty::Ty;
+use value::{Value, Fields as ValueFields};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
@@ -63,6 +64,11 @@ impl Cases {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum Error {
+    CanNotConvertToValue(String),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     NoneExpression,
@@ -79,7 +85,7 @@ pub enum Kind {
     Projection(Box<Node>, String), // Record, label
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
     Unit,
-    Tag(String, Box<Node>, Box<Ty>), // tag (inl|inr), value, type of variant
+    Tag(String, Box<Node>, Box<Ty>), // tag, value, type of variant
     Case(Box<Node>, Cases), // variant, (tag, (variable, body))
     As(Box<Node>, Box<Ty>), // expression, ascribed type
     Fix(Box<Node>), // generator node
@@ -177,6 +183,7 @@ impl Node {
     pub fn new_projection(record: Node, label: String) -> Node {
         Node { kind: Projection(Box::new(record), label) }
     }
+
     pub fn new_record_from_fields(fields: Fields) -> Node {
         Node { kind: Record(fields) }
     }
@@ -201,6 +208,68 @@ impl Node {
     pub fn is_none_expression(&self) -> bool {
         match self.kind {
             NoneExpression => true,
+            _ => false
+        }
+    }
+
+    pub fn into_value(self) -> Result<Value, Error> {
+        match self.kind {
+            NoneExpression => Ok(Value::new_none()),
+            Bool(b) => {
+                if b {
+                    Ok(Value::new_true())
+                } else {
+                    Ok(Value::new_false())
+                }
+            },
+            Zero => self.into_nat_value(0),
+            Succ(..) => self.into_nat_value(0),
+            Tag(s, node, ty) => {
+                let v = node.into_value()?;
+                Ok(Value::new_tag(s, v, *ty))
+            },
+            Record(fields) => {
+                let mut vf = ValueFields::new();
+
+                for (s, node) in fields.iter() {
+                    let v = node.clone().into_value()?;
+                    vf.insert(s.clone(), Box::new(v));
+                }
+
+                Ok(Value::new_record(vf))
+            },
+            Unit => Ok(Value::new_unit()),
+            Lambda(..) => Ok(Value::new_lambda(self)),
+            _ => Err(Error::CanNotConvertToValue(format!("This is not a value node: {:?}", self)))
+        }
+    }
+
+    fn into_nat_value(&self, i: u32) -> Result<Value, Error> {
+        match self.kind {
+            Zero => Ok(Value::new_nat(i)),
+            Succ(ref node) => node.into_nat_value(i + 1),
+            _ => Err(Error::CanNotConvertToValue(format!("This is not a nat value node: {:?}", self)))
+        }
+    }
+
+    pub fn is_value(&self) -> bool {
+        match self.kind {
+            NoneExpression => true,
+            Bool(..) => true,
+            Zero => true,
+            Succ(..) => true,
+            Tag(_, ref node, _) => node.is_value(),
+            Record(ref fields) => fields.iter().all(|(_, node)| node.is_value()),
+            Unit => true,
+            Lambda(..) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_numericval(&self) -> bool {
+        match self.kind {
+            Zero => true,
+            Succ(..) => true,
             _ => false
         }
     }

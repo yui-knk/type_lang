@@ -1,12 +1,12 @@
-use node::{Node, Kind, Fields as NodeFields, Cases};
-use value::{Value, Kind as ValueKind, Fields};
+use node::{Node, Kind, Fields, Cases};
+use value::{Value};
 
 struct Env {
-    // Mapping from variable to value.
+    // Mapping from variable to value node.
     // Use Vec as a stack.
     //
     // Value may be shared multi lambda bodies.
-    stack: Vec<(String, Value)>
+    stack: Vec<(String, Node)>
 }
 
 pub struct Evaluator {
@@ -18,7 +18,6 @@ pub enum Error {
     UnexpectedNode(String),
     VariableNotFound(String),
     NotApplyable(String),
-    UnexpectedValue(String),
     IndexError(String),
 }
 
@@ -27,8 +26,8 @@ impl Env {
         Env { stack: Vec::new() }
     }
 
-    fn push(&mut self, variable: String, value: Value) {
-        self.stack.push((variable, value));
+    fn push(&mut self, variable: String, node: Node) {
+        self.stack.push((variable, node));
     }
 
     fn pop(&mut self) {
@@ -37,10 +36,10 @@ impl Env {
         }
     }
 
-    fn find_by_variable(&self, variable: &str) -> Option<Value> {
-        for (str, value) in self.stack.iter().rev() {
+    fn find_by_variable(&self, variable: &str) -> Option<Node> {
+        for (str, node) in self.stack.iter().rev() {
             if str == variable {
-                return Some(value.clone());
+                return Some(node.clone());
             }
         }
 
@@ -54,6 +53,16 @@ impl Evaluator {
     }
 
     pub fn eval(&mut self, node: Node) -> Result<Value, Error> {
+        let value_node = self._eval(node)?;
+
+        if value_node.is_value() {
+            Ok(value_node.into_value().unwrap())
+        } else {
+            Err(Error::UnexpectedNode(format!("This is not a value node: {:?}", value_node)))
+        }
+    }
+
+    pub fn _eval(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::NoneExpression => self.eval_none_expression(node),
             Kind::Bool(_) => self.eval_bool(node),
@@ -77,16 +86,16 @@ impl Evaluator {
         }
     }
 
-    fn eval_none_expression(&self, _node: Node) -> Result<Value, Error> {
-        Ok(Value::new_none())
+    fn eval_none_expression(&self, node: Node) -> Result<Node, Error> {
+        Ok(node)
     }
 
-    fn eval_let(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_let(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Let(variable, bound, body) => {
-                let bound_value = self.eval(*bound)?;
+                let bound_value = self._eval(*bound)?;
                 self.env.push(variable, bound_value);
-                let body_value = self.eval(*body)?;
+                let body_value = self._eval(*body)?;
                 self.env.pop();
                 Ok(body_value)
             },
@@ -94,25 +103,20 @@ impl Evaluator {
         }
     }
 
-    fn eval_apply(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_apply(&mut self, node: Node) -> Result<Node, Error> {
         let error_message = format!("eval_apply {:?}", node);
 
         match node.kind {
             Kind::Apply(rec, arg) => {
-                let arg_val = self.eval(*arg)?;
-                let rec_val = self.eval(*rec)?;
-                let rec_val_kind = rec_val.kind;
-                let rec_node = match rec_val_kind {
-                    ValueKind::Lambda(n) => n,
-                    _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", rec_val_kind)))
-                };
-                let (variable, body) = match rec_node.kind {
+                let arg_val = self._eval(*arg)?;
+                let rec_val = self._eval(*rec)?;
+                let (variable, body) = match rec_val.kind {
                     Kind::Lambda(v, b, _) => (v, b),
-                    _ => return Err(Error::UnexpectedNode(error_message))
+                    _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", rec_val.kind)))
                 };
 
                 self.env.push(variable, arg_val);
-                let rec_val = self.eval(*body)?;
+                let rec_val = self._eval(*body)?;
                 self.env.pop();
                 Ok(rec_val)
             },
@@ -120,7 +124,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_var_ref(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_var_ref(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::VarRef(variable) => {
                 match self.env.find_by_variable(&variable) {
@@ -132,25 +136,25 @@ impl Evaluator {
         }
     }
 
-    fn eval_unit(&self, node: Node) -> Result<Value, Error> {
+    fn eval_unit(&self, node: Node) -> Result<Node, Error> {
         match node.kind {
-            Kind::Unit => Ok(Value::new_unit()),
+            Kind::Unit => Ok(node),
             _ => Err(Error::UnexpectedNode(format!("eval_unit {:?}", node)))
         }
     }
 
-    fn eval_as(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_as(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
-            Kind::As(expr, _) => self.eval(*expr),
+            Kind::As(expr, _) => self._eval(*expr),
             _ => Err(Error::UnexpectedNode(format!("eval_as {:?}", node)))
         }
     }
 
-    fn eval_tag(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_tag(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Tag(s, node, ty) => {
-                let value = self.eval(*node)?;
-                Ok(Value::new_tag(s, value, *ty))
+                let value = self._eval(*node)?;
+                Ok(Node::new_tag(s, value, *ty))
             },
             _ => Err(Error::UnexpectedNode(format!("eval_tag {:?}", node)))
         }
@@ -217,7 +221,7 @@ impl Evaluator {
                 Node::new_iszero(op2)
             },
             Kind::Record(fields) => {
-                let mut fields2 = NodeFields::new();
+                let mut fields2 = Fields::new();
 
                 for (s, n) in fields.iter() {
                     fields2.insert(
@@ -265,112 +269,104 @@ impl Evaluator {
         }
     }
 
-    fn eval_fix(&mut self, fix_node: Node) -> Result<Value, Error> {
+    fn eval_fix(&mut self, fix_node: Node) -> Result<Node, Error> {
         match fix_node.clone().kind {
             Kind::Fix(node) => {
-                let node_value = self.eval(*node)?;
-                let node2 = match node_value.clone().kind {
-                    ValueKind::Lambda(n) => n,
-                    _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", node_value.kind)))
-                };
-                let (variable, body) = match node2.kind {
+                let node_value = self._eval(*node)?;
+                let (variable, body) = match node_value.kind {
                     Kind::Lambda(v, b, _) => (v, b),
-                    _ => return Err(Error::UnexpectedNode(format!("eval_fix expects Lambda node: {:?}", node2)))
+                    _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", node_value.kind)))
                 };
 
                 let replaced = self.replace_variable_with_fix_node(&variable, &fix_node, *body);
-                let replaced_val = self.eval(replaced)?;
+                let replaced_val = self._eval(replaced)?;
                 Ok(replaced_val)
             },
             _ => Err(Error::UnexpectedNode(format!("eval_fix expects Fix node: {:?}", fix_node)))
         }
     }
 
-    fn eval_case(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_case(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Case(variant, cases) => {
-                let variant_value = self.eval(*variant)?;
+                let variant_value = self._eval(*variant)?;
 
                 match variant_value.kind {
-                    ValueKind::Tag(s, v, _) => {
+                    Kind::Tag(s, v, _) => {
                        let case_node_opt = cases.get(&s);
 
                        match case_node_opt {
                             Some((var, case_node)) => {
                                 self.env.push(var.clone(), *v);
-                                let case_value = self.eval(*case_node.clone())?;
+                                let case_value = self._eval(*case_node.clone())?;
                                 self.env.pop();
                                 Ok(case_value)
                             },
                             None => Err(Error::IndexError(format!("eval_case {:?}", s)))
                        }
                     },
-                    _ => Err(Error::UnexpectedValue(format!("eval_case {:?}", variant_value)))
+                    _ => Err(Error::UnexpectedNode(format!("eval_case {:?}", variant_value)))
                 }
             },
             _ => Err(Error::UnexpectedNode(format!("eval_case {:?}", node)))
         }
     }
 
-    fn eval_bool(&self, node: Node) -> Result<Value, Error> {
+    fn eval_bool(&self, node: Node) -> Result<Node, Error> {
         match node.kind {
-            Kind::Bool(true)  => Ok(Value::new_true()),
-            Kind::Bool(false) => Ok(Value::new_false()),
+            Kind::Bool(..)  => Ok(node),
             _ => Err(Error::UnexpectedNode(format!("eval_bool {:?}", node)))
         }
     }
 
-    fn eval_zero(&self, node: Node) -> Result<Value, Error> {
+    fn eval_zero(&self, node: Node) -> Result<Node, Error> {
         match node.kind {
-            Kind::Zero => Ok(Value::new_nat(0)),
+            Kind::Zero => Ok(node),
             _ => Err(Error::UnexpectedNode(format!("eval_zero {:?}", node)))
         }
     }
 
-    fn eval_succ(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_succ(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Succ(n) => {
-                let n_val = self.eval(*n)?;
+                let n_val = self._eval(*n)?;
 
-                match n_val.kind {
-                    ValueKind::Nat(i) => {
-                        Ok(Value::new_nat(i + 1))
-                    },
-                    _ => Err(Error::UnexpectedValue(format!("eval_succ {:?}", n_val)))
+                if n_val.is_numericval() {
+                    Ok(Node::new_succ(n_val))
+                } else {
+                    Err(Error::UnexpectedNode(format!("eval_succ {:?}", n_val)))
                 }
             },
             _ => Err(Error::UnexpectedNode(format!("eval_succ {:?}", node)))
         }
     }
 
-    fn eval_pred(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_pred(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Pred(n) => {
-                let n_val = self.eval(*n)?;
+                let n_val = self._eval(*n)?;
 
                 match n_val.kind {
-                    ValueKind::Nat(i) => {
-                        let j = if i > 0 {
-                            i - 1
-                        } else {
-                            0
-                        };
-                        Ok(Value::new_nat(j))
+                    Kind::Zero => {
+                        Ok(Node::new_nat(0))
                     },
-                    _ => Err(Error::UnexpectedValue(format!("eval_pred {:?}", n_val)))
+                    Kind::Succ(n) => {
+                        Ok(*n)
+                    },
+                    _ => Err(Error::UnexpectedNode(format!("eval_pred {:?}", n_val)))
                 }
             },
             _ => Err(Error::UnexpectedNode(format!("eval_pred {:?}", node)))
         }
     }
 
-    fn eval_lambda(&self, node: Node) -> Result<Value, Error> {
-        Ok(Value::new_lambda(node))
+    fn eval_lambda(&self, node: Node) -> Result<Node, Error> {
+        Ok(node)
     }
 
-    fn eval_record(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_record(&mut self, node: Node) -> Result<Node, Error> {
         let field_values = self._eval_record(node)?;
-        Ok(Value::new_record(field_values))
+        Ok(Node::new_record_from_fields(field_values))
     }
 
     fn _eval_record(&mut self, node: Node) -> Result<Fields, Error> {
@@ -379,7 +375,7 @@ impl Evaluator {
                 let mut field_values = Fields::new();
 
                 for (s, node) in fields.iter() {
-                    let field_value = self.eval(*node.clone())?;
+                    let field_value = self._eval(*node.clone())?;
                     field_values.insert(s.clone(), Box::new(field_value));
                 }
 
@@ -389,7 +385,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_projection(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_projection(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Projection(node, label) => {
                 let records = self._eval_record(*node)?;
@@ -404,15 +400,15 @@ impl Evaluator {
         }
     }
 
-    fn eval_iszero(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_iszero(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Iszero(n) => {
                 let error_message = format!("eval_iszero {:?}", n);
-                let n_val = self.eval(*n)?;
+                let n_val = self._eval(*n)?;
 
                 match n_val.kind {
-                    ValueKind::Nat(0) => Ok(Value::new_true()),
-                    ValueKind::Nat(_) => Ok(Value::new_false()),
+                    Kind::Zero => Ok(Node::new_bool(true)),
+                    Kind::Succ(_) => Ok(Node::new_bool(false)),
                     _ => Err(Error::UnexpectedNode(error_message))
                 }
             },
@@ -420,19 +416,20 @@ impl Evaluator {
         }
     }
 
-    fn eval_if(&mut self, node: Node) -> Result<Value, Error> {
+    fn eval_if(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::If(cond, then_expr, else_expr) => {
-                let cond_val = self.eval(*cond)?;
+                let cond_val = self._eval(*cond)?;
 
                 match cond_val.kind {
-                    ValueKind::True => {
-                        self.eval(*then_expr)
+                    Kind::Bool(b) => {
+                        if b {
+                            self._eval(*then_expr)
+                        } else {
+                            self._eval(*else_expr)
+                        }
                     },
-                    ValueKind::False => {
-                        self.eval(*else_expr)
-                    },
-                    _ => Err(Error::UnexpectedValue(format!("eval_if {:?}", cond_val)))
+                    _ => Err(Error::UnexpectedNode(format!("eval_if {:?}", cond_val)))
                 }
             }
             _ => Err(Error::UnexpectedNode(format!("eval_if {:?}", node)))
@@ -447,19 +444,19 @@ mod tests_env {
     #[test]
     fn test_find_by_variable() {
         let mut env = Env::new();
-        env.push("x".to_string(), Value::new_false());
+        env.push("x".to_string(), Node::new_bool(false));
 
         assert_eq!(env.find_by_variable(&"y".to_string()), None);
-        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Value::new_false()));
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Node::new_bool(false)));
 
-        env.push("y".to_string(), Value::new_true());
-        assert_eq!(env.find_by_variable(&"y".to_string()), Some(Value::new_true()));
-        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Value::new_false()));
+        env.push("y".to_string(), Node::new_bool(true));
+        assert_eq!(env.find_by_variable(&"y".to_string()), Some(Node::new_bool(true)));
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Node::new_bool(false)));
 
         env.pop();
-        env.push("x".to_string(), Value::new_true());
+        env.push("x".to_string(), Node::new_bool(true));
         assert_eq!(env.find_by_variable(&"y".to_string()), None);
-        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Value::new_true()));
+        assert_eq!(env.find_by_variable(&"x".to_string()), Some(Node::new_bool(true)));
 
     }
 }
@@ -467,7 +464,7 @@ mod tests_env {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use value::{Value};
+    use value::{Value, Fields as ValueFields};
     use parser::{Parser};
     use node::{Node};
     use ty::{Ty, Fields as TyFields};
@@ -597,7 +594,7 @@ mod tests {
     #[test]
     fn test_eval_record() {
         let result = eval_string(" {10, a=false, true} ".to_string());
-        let mut fields = Fields::new();
+        let mut fields = ValueFields::new();
 
         fields.insert("0".to_string(), Box::new(Value::new_nat(10)));
         fields.insert("a".to_string(), Box::new(Value::new_false()));
