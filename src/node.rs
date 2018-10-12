@@ -1,5 +1,4 @@
 use ty::Ty;
-use value::{Value, Fields as ValueFields};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
@@ -64,11 +63,6 @@ impl Cases {
 
         None
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Error {
-    CanNotConvertToValue(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -216,47 +210,6 @@ impl Node {
         match self.kind {
             NoneExpression => true,
             _ => false
-        }
-    }
-
-    pub fn into_value(self) -> Result<Value, Error> {
-        match self.kind {
-            NoneExpression => Ok(Value::new_none()),
-            Bool(b) => {
-                if b {
-                    Ok(Value::new_true())
-                } else {
-                    Ok(Value::new_false())
-                }
-            },
-            Zero => self.into_nat_value(0),
-            Succ(..) => self.into_nat_value(0),
-            Tag(s, node, ty) => {
-                let v = node.into_value()?;
-                Ok(Value::new_tag(s, v, *ty))
-            },
-            Record(fields) => {
-                let mut vf = ValueFields::new();
-
-                for (s, node) in fields.iter() {
-                    let v = node.clone().into_value()?;
-                    vf.insert(s.clone(), Box::new(v));
-                }
-
-                Ok(Value::new_record(vf))
-            },
-            Unit => Ok(Value::new_unit()),
-            Lambda(..) => Ok(Value::new_lambda(self)),
-            // Loc(l) => 
-            _ => Err(Error::CanNotConvertToValue(format!("This is not a value node: {:?}", self)))
-        }
-    }
-
-    fn into_nat_value(&self, i: u32) -> Result<Value, Error> {
-        match self.kind {
-            Zero => Ok(Value::new_nat(i)),
-            Succ(ref node) => node.into_nat_value(i + 1),
-            _ => Err(Error::CanNotConvertToValue(format!("This is not a nat value node: {:?}", self)))
         }
     }
 

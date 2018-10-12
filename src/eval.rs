@@ -1,5 +1,5 @@
 use node::{Node, Kind, Fields, Cases, Location};
-use value::{Value};
+use value::{Value, Fields as ValueFields};
 
 struct Env {
     // Mapping from variable to value node.
@@ -21,6 +21,7 @@ pub enum Error {
     VariableNotFound(String),
     NotApplyable(String),
     IndexError(String),
+    CanNotConvertToValue(String),
 }
 
 impl Env {
@@ -68,9 +69,50 @@ impl Evaluator {
         let value_node = self._eval(node)?;
 
         if value_node.is_value() {
-            Ok(value_node.into_value().unwrap())
+            Ok(self.into_value(value_node).unwrap())
         } else {
             Err(Error::UnexpectedNode(format!("This is not a value node: {:?}", value_node)))
+        }
+    }
+
+    fn into_value(&mut self, node: Node) -> Result<Value, Error> {
+        match node.kind {
+            Kind::NoneExpression => Ok(Value::new_none()),
+            Kind::Bool(b) => {
+                if b {
+                    Ok(Value::new_true())
+                } else {
+                    Ok(Value::new_false())
+                }
+            },
+            Kind::Zero => self.into_nat_value(&node, 0),
+            Kind::Succ(..) => self.into_nat_value(&node, 0),
+            Kind::Tag(s, node, ty) => {
+                let v = self.into_value(*node)?;
+                Ok(Value::new_tag(s, v, *ty))
+            },
+            Kind::Record(fields) => {
+                let mut vf = ValueFields::new();
+
+                for (s, node) in fields.iter() {
+                    let v = self.into_value(*node.clone())?;
+                    vf.insert(s.clone(), Box::new(v));
+                }
+
+                Ok(Value::new_record(vf))
+            },
+            Kind::Unit => Ok(Value::new_unit()),
+            Kind::Lambda(..) => Ok(Value::new_lambda(node)),
+            // Loc(l) => 
+            _ => Err(Error::CanNotConvertToValue(format!("This is not a value node: {:?}", node)))
+        }
+    }
+
+    fn into_nat_value(&self, node: &Node, i: u32) -> Result<Value, Error> {
+        match node.kind {
+            Kind::Zero => Ok(Value::new_nat(i)),
+            Kind::Succ(ref node2) => self.into_nat_value(node2, i + 1),
+            _ => Err(Error::CanNotConvertToValue(format!("This is not a nat value node: {:?}", node)))
         }
     }
 
