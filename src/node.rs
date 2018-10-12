@@ -6,6 +6,8 @@ pub struct Node {
     pub kind: Kind,
 }
 
+pub type Location = usize;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Fields {
     elements: Vec<(String, Box<Node>)>
@@ -92,6 +94,7 @@ pub enum Kind {
     Ref(Box<Node>), // bound value
     Deref(Box<Node>), // reference value
     Assign(Box<Node>, Box<Node>), // reference, value
+    Loc(Location), // location index
 }
 
 use self::Kind::*;
@@ -176,6 +179,10 @@ impl Node {
         Node { kind: Tag(s, Box::new(node), Box::new(ty)) }
     }
 
+    pub fn new_loc(loc: Location) -> Node {
+        Node { kind: Loc(loc) }
+    }
+
     pub fn new_case(node: Node, cases: Cases) -> Node {
         Node { kind: Case(Box::new(node), cases) }
     }
@@ -240,6 +247,7 @@ impl Node {
             },
             Unit => Ok(Value::new_unit()),
             Lambda(..) => Ok(Value::new_lambda(self)),
+            // Loc(l) => 
             _ => Err(Error::CanNotConvertToValue(format!("This is not a value node: {:?}", self)))
         }
     }
@@ -262,6 +270,7 @@ impl Node {
             Record(ref fields) => fields.iter().all(|(_, node)| node.is_value()),
             Unit => true,
             Lambda(..) => true,
+            Loc(..) => true,
             _ => false
         }
     }

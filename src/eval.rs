@@ -1,4 +1,4 @@
-use node::{Node, Kind, Fields, Cases};
+use node::{Node, Kind, Fields, Cases, Location};
 use value::{Value};
 
 struct Env {
@@ -6,7 +6,9 @@ struct Env {
     // Use Vec as a stack.
     //
     // Value may be shared multi lambda bodies.
-    stack: Vec<(String, Node)>
+    stack: Vec<(String, Node)>,
+    // Collection of value node of references.
+    store: Vec<Box<Node>>,
 }
 
 pub struct Evaluator {
@@ -23,7 +25,7 @@ pub enum Error {
 
 impl Env {
     fn new() -> Env {
-        Env { stack: Vec::new() }
+        Env { stack: Vec::new(), store: Vec::new() }
     }
 
     fn push(&mut self, variable: String, node: Node) {
@@ -44,6 +46,16 @@ impl Env {
         }
 
         None
+    }
+
+    fn push_to_store(&mut self, node: Node) -> Location {
+        let u = self.store.len();
+        self.store.push(Box::new(node));
+        u
+    }
+
+    fn update_store(&mut self, l: Location, node: Node) {
+        self.store[l] = Box::new(node);
     }
 }
 
@@ -82,7 +94,11 @@ impl Evaluator {
             Kind::Tag(..) => self.eval_tag(node),
             Kind::Case(..) => self.eval_case(node),
             Kind::Fix(..) => self.eval_fix(node),
-            _ => panic!("")
+            Kind::Ref(..) => self.eval_ref(node),
+            Kind::Deref(..) => self.eval_deref(node),
+            Kind::Assign(..) => self.eval_assign(node),
+            Kind::Loc(..) => Err(Error::UnexpectedNode("Loc node should not appear as user input.".to_string()))
+            // _ => panic!("")
         }
     }
 
@@ -103,6 +119,49 @@ impl Evaluator {
         }
     }
 
+    fn eval_ref(&mut self, node: Node) -> Result<Node, Error> {
+        match node.kind {
+            Kind::Ref(node) => {
+                let val = self._eval(*node)?;
+                let loc = self.env.push_to_store(val);
+                Ok(Node::new_loc(loc))
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_ref {:?}", node)))
+        }
+    }
+
+    fn eval_assign(&mut self, node: Node) -> Result<Node, Error> {
+        match node.kind {
+            Kind::Assign(left, right) => {
+                let lval = self._eval(*left)?;
+                let rval = self._eval(*right)?;
+
+                match lval.kind {
+                    Kind::Loc(l) => {
+                        self.env.update_store(l, rval);
+                        Ok(Node::new_unit())
+                    },
+                    _ => Err(Error::UnexpectedNode(format!("eval_assign {:?}", lval)))
+                }
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_assign {:?}", node)))
+        }
+    }
+
+    fn eval_deref(&mut self, node: Node) -> Result<Node, Error> {
+        match node.kind {
+            Kind::Deref(re) => {
+                match re.kind {
+                    Kind::Loc(l) => {
+                        Ok(*self.env.store[l].clone())
+                    },
+                    _ => Err(Error::UnexpectedNode(format!("eval_loc {:?}", re)))
+                }
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_loc {:?}", node)))
+        }
+    }
+
     fn eval_apply(&mut self, node: Node) -> Result<Node, Error> {
         let error_message = format!("eval_apply {:?}", node);
 
@@ -120,7 +179,7 @@ impl Evaluator {
                 self.env.pop();
                 Ok(rec_val)
             },
-            _ => Err(Error::UnexpectedNode(error_message))
+            _ => Err(Error::UnexpectedNode(format!("eval_ref {:?}", node)))
         }
     }
 
@@ -575,6 +634,24 @@ mod tests {
         let result = eval_string(" let x = 1 in false ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
+
+    // #[test]
+    // fn test_eval_deref() {
+    //     let result = eval_string(" let x = 1 in x ".to_string());
+    //     assert_eq!(result, Ok(Value::new_nat(1)));
+
+    //     let result = eval_string(" let x = 1 in false ".to_string());
+    //     assert_eq!(result, Ok(Value::new_false()));
+    // }
+
+    // #[test]
+    // fn test_eval_assign() {
+    //     let result = eval_string(" let x = 1 in x ".to_string());
+    //     assert_eq!(result, Ok(Value::new_nat(1)));
+
+    //     let result = eval_string(" let x = 1 in false ".to_string());
+    //     assert_eq!(result, Ok(Value::new_false()));
+    // }
 
     #[test]
     fn test_eval_variant() {

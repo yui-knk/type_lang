@@ -304,6 +304,9 @@ impl TypeChecker {
                     _ => Err(Error::TypeMismatch(format!("{:?} is not ref type.", left_type.kind)))
                 }
             },
+            Kind::Loc(..) => {
+                Err(Error::TypeMismatch(format!("User can not input Loc node: {:?}.", node)))
+            },
             // _ => panic!("")
         }
     }
