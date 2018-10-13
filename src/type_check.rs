@@ -59,6 +59,40 @@ impl TypeChecker {
         self.type_of(node)
     }
 
+    // -- SUBTYPING --
+
+    // As Fig.15-1 (P.145), subtyping rules "S-*" do not
+    // change the type of terms. Only "T-SUB" changes the tyep
+    // of terms.
+    fn subtype_eq(&self, ty1: &Ty, ty2: &Ty) -> bool {
+        self.type_eq(ty1, ty2)
+    }
+
+    fn type_eq(&self, ty1: &Ty, ty2: &Ty) -> bool {
+        match (&ty1.kind, &ty2.kind) {
+            (TyKind::Arrow(ref ty11, ref ty12), TyKind::Arrow(ref ty21, ref ty22)) => {
+                self.type_eq(ty11, ty21) && self.type_eq(ty12, ty22)
+            },
+            (TyKind::Bool, TyKind::Bool) => true,
+            (TyKind::Nat, TyKind::Nat) => true,
+            (TyKind::Record(ref f1), TyKind::Record(ref f2)) => {
+                (f1.iter().len() == f2.iter().len()) &&
+                f1.iter().zip(f2.iter())
+                  .all(|((s1, ty1), (s2, ty2))| (s1 == s2) && self.type_eq(ty1, ty2) )
+            },
+            (TyKind::Variant(ref f1), TyKind::Variant(ref f2)) => {
+                (f1.iter().len() == f2.iter().len()) && 
+                f1.iter().zip(f2.iter())
+                  .all(|((s1, ty1), (s2, ty2))| (s1 == s2) && self.type_eq(ty1, ty2) )
+            },
+            (TyKind::Unit, TyKind::Unit) => true,
+            (TyKind::Ref(ref ty11), TyKind::Ref(ref ty21)) => self.type_eq(ty11, ty21),
+            _ => false
+        }
+    }
+
+    // -- TYPING --
+
     fn type_of(&mut self, node: &Node) -> Result<Ty, Error> {
         match node.kind {
             Kind::NoneExpression => Ok(Ty::new_bool()), // We do not have unit-type now
@@ -335,6 +369,132 @@ mod tests_env {
         context.push("x".to_string(), arrow_ty.clone());
         assert_eq!(context.find_by_variable(&"y".to_string()), None);
         assert_eq!(context.find_by_variable(&"x".to_string()), Some(arrow_ty.clone()));
+    }
+}
+
+#[cfg(test)]
+mod tests_type_eq {
+    use super::*;
+
+    #[test]
+    fn test_type_eq_arrow() {
+        let type_checker = TypeChecker::new();
+        let arrow1 = Ty::new_arrow(Ty::new_bool(), Ty::new_nat());
+        let arrow2 = Ty::new_arrow(Ty::new_bool(), Ty::new_nat());
+        let result = type_checker.type_eq(&arrow1, &arrow2);
+        assert!(result);
+
+        let arrow3 = Ty::new_arrow(Ty::new_nat(), Ty::new_bool());
+        let arrow4 = Ty::new_arrow(Ty::new_bool(), Ty::new_nat());
+        let result = type_checker.type_eq(&arrow3, &arrow4);
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_type_eq_bool() {
+        let type_checker = TypeChecker::new();
+        let result = type_checker.type_eq(&Ty::new_bool(), &Ty::new_bool());
+        assert!(result);
+
+        let result = type_checker.type_eq(&Ty::new_bool(), &Ty::new_nat());
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_type_eq_nat() {
+        let type_checker = TypeChecker::new();
+        let result = type_checker.type_eq(&Ty::new_nat(), &Ty::new_nat());
+        assert!(result);
+
+        let result = type_checker.type_eq(&Ty::new_nat(), &Ty::new_bool());
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_type_eq_record() {
+        let type_checker = TypeChecker::new();
+
+        // {10, a=false, true}
+        let mut f1 = Fields::new();
+        f1.insert("0".to_string(), Box::new(Ty::new_nat()));
+        f1.insert("a".to_string(), Box::new(Ty::new_bool()));
+        f1.insert("2".to_string(), Box::new(Ty::new_bool()));
+        let r1 = Ty::new_record(f1);
+
+        // {10, a=false, true}
+        let mut f2 = Fields::new();
+        f2.insert("0".to_string(), Box::new(Ty::new_nat()));
+        f2.insert("a".to_string(), Box::new(Ty::new_bool()));
+        f2.insert("2".to_string(), Box::new(Ty::new_bool()));
+        let r2 = Ty::new_record(f2);
+
+        // {false, a=10, true}
+        let mut f3 = Fields::new();
+        f3.insert("0".to_string(), Box::new(Ty::new_bool()));
+        f3.insert("a".to_string(), Box::new(Ty::new_nat()));
+        f3.insert("2".to_string(), Box::new(Ty::new_bool()));
+        let r3 = Ty::new_record(f3);
+
+        let result = type_checker.type_eq(&r1, &r2);
+        assert!(result);
+
+        let result = type_checker.type_eq(&r1, &r3);
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_type_eq_variant() {
+        let type_checker = TypeChecker::new();
+
+        // <a:Nat, b:Bool>
+        let mut f1 = Fields::new();
+        f1.insert("a".to_string(), Box::new(Ty::new_nat()));
+        f1.insert("b".to_string(), Box::new(Ty::new_bool()));
+        let v1 = Ty::new_record(f1);
+
+        // <a:Nat, b:Bool>
+        let mut f2 = Fields::new();
+        f2.insert("a".to_string(), Box::new(Ty::new_nat()));
+        f2.insert("b".to_string(), Box::new(Ty::new_bool()));
+        let v2 = Ty::new_record(f2);
+
+        // <a:Bool, b:Nat>
+        let mut f3 = Fields::new();
+        f3.insert("a".to_string(), Box::new(Ty::new_bool()));
+        f3.insert("b".to_string(), Box::new(Ty::new_nat()));
+        let v3 = Ty::new_record(f3);
+
+        let result = type_checker.type_eq(&v1, &v2);
+        assert!(result);
+
+        let result = type_checker.type_eq(&v1, &v3);
+        assert!(!result);    }
+
+    #[test]
+    fn test_type_eq_unit() {
+        let type_checker = TypeChecker::new();
+        let result = type_checker.type_eq(&Ty::new_unit(), &Ty::new_unit());
+        assert!(result);
+
+        let result = type_checker.type_eq(&Ty::new_unit(), &Ty::new_bool());
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_type_eq_ref() {
+        let type_checker = TypeChecker::new();
+        let r1 = Ty::new_ref(Ty::new_bool());
+        let r2 = Ty::new_ref(Ty::new_bool());
+        let r3 = Ty::new_ref(Ty::new_nat());
+
+        let result = type_checker.type_eq(&r1, &r2);
+        assert!(result);
+
+        let result = type_checker.type_eq(&r1, &r3);
+        assert!(!result);
+
+        let result = type_checker.type_eq(&r1, &Ty::new_bool());
+        assert!(!result);
     }
 }
 
