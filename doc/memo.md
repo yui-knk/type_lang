@@ -6,7 +6,7 @@ Current implementation has almost same features as "fullsub", which is the theme
 These features are implemented:
 
 - Abs.        "-> x : Bool { x }".
-- App.        "(-> x : Bool { x } false)", parens are needed.
+- App.        "-> x : Bool { x }.(false)".
 - If.         "if true then false else true".
 - Let.        "let x = 1 in x".
 - As.         "false as Bool".
