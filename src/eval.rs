@@ -495,12 +495,18 @@ impl Evaluator {
     fn eval_projection(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Projection(node, label) => {
-                let records = self._eval_record(*node)?;
-                let value = records.get(&label);
+                let node_value = self._eval(*node)?;
 
-                match value {
-                    Some(v) => Ok(*v.clone()),
-                    None => Err(Error::IndexError(format!("eval_projection {:?}", label)))
+                match node_value.kind {
+                    Kind::Record(fields) => {
+                        let value = fields.get(&label);
+
+                        match value {
+                            Some(v) => Ok(*v.clone()),
+                            None => Err(Error::IndexError(format!("eval_projection {:?}", label)))
+                        }
+                    },
+                    _ => Err(Error::UnexpectedNode(format!("eval_projection expects Record node {:?}", node_value)))
                 }
             },
             _ => Err(Error::UnexpectedNode(format!("eval_projection {:?}", node)))
