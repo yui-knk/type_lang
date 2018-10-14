@@ -37,6 +37,7 @@ pub enum Kind {
     Arrow(Box<Ty>, Box<Ty>), // e.g. Bool -> Bool
     Bool,
     Nat, // Natural Number
+    Top,
     Record(Fields),
     Variant(Fields),
     Unit, // the only value of Unit type is "unit"
@@ -56,6 +57,10 @@ impl Ty {
 
     pub fn new_nat() -> Ty {
         Ty { kind: Nat }
+    }
+
+    pub fn new_top() -> Ty {
+        Ty { kind: Top }
     }
 
     pub fn new_unit() -> Ty {

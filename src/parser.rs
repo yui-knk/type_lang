@@ -360,6 +360,7 @@ impl Parser {
         match token.kind {
             Kind::Keyword(Keyword::BOOL) => Ok(Ty::new_bool()),
             Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
+            Kind::Keyword(Keyword::TOP) => Ok(Ty::new_top()),
             _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
         }
     }
@@ -701,6 +702,14 @@ mod tests {
 
         assert_eq!(parser.parse_type(), Ok(Ty {
             kind: TyKind::Variant(fields)
+        }));
+    }
+
+    #[test]
+    fn test_parse_top_type() {
+        let mut parser = Parser::new("Top".to_string());
+        assert_eq!(parser.parse_type(), Ok(Ty {
+            kind: TyKind::Top
         }));
     }
 
