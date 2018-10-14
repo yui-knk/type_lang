@@ -231,7 +231,7 @@ impl TypeChecker {
             Kind::As(ref node, ref ty) => {
                 let node_type = self.type_of(node)?;
 
-                if node_type.kind != ty.kind {
+                if !self.subtype_eq(&node_type, ty) {
                     return Err(Error::TypeMismatch(format!(
                         "Type mismatch. EXPRESSION: {:?}, AS: {:?}.", node_type.kind, ty.kind)));
                 }
@@ -662,6 +662,21 @@ mod tests {
         assert!(result.is_err());
 
         let result = check_type_of_string("false as Nat".to_string());
+        assert!(result.is_err());
+
+        // subtyping
+        let mut fields = Fields::new();
+        fields.insert("a".to_string(), Box::new(Ty::new_bool()));
+        fields.insert("b".to_string(), Box::new(Ty::new_nat()));
+        let recode_ty = Ty::new_record(fields);
+
+        let result = check_type_of_string("{a=false, b=10} as {a:Bool}".to_string());
+        assert_eq!(result, Ok(recode_ty.clone()));
+
+        let result = check_type_of_string("{a=false, b=10} as {b:Nat}".to_string());
+        assert_eq!(result, Ok(recode_ty.clone()));
+
+        let result = check_type_of_string("{a=false} as {a:Bool, b:Nat}".to_string());
         assert!(result.is_err());
     }
 
