@@ -17,7 +17,7 @@ These features are implemented:
 - Ref.        "ref true".
 - Deref.      "! ref true".
 - Assign.     "let x = ref false in x := true".
-- Type. Only Bool, Nat, Unit and Arrow (function) types are supported.
+- Type. Only Bool, Nat, Unit, Record and Arrow (function) types are supported.
 
 These features are not implemented:
 
