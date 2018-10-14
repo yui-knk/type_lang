@@ -61,11 +61,32 @@ impl TypeChecker {
 
     // -- SUBTYPING --
 
+    // `subtype_eq` checks `ty1` is a sub type of `ty2`, as `ty1 <: ty2`.
+    //
     // As Fig.15-1 (P.145), subtyping rules "S-*" do not
     // change the type of terms. Only "T-SUB" changes the tyep
     // of terms.
     fn subtype_eq(&self, ty1: &Ty, ty2: &Ty) -> bool {
-        self.type_eq(ty1, ty2)
+        if self.type_eq(ty1, ty2) { return true; }
+
+        match (&ty1.kind, &ty2.kind) {
+            (TyKind::Arrow(ref ty11, ref ty12), TyKind::Arrow(ref ty21, ref ty22)) => {
+                // T1 <: S1    S2 <: T2
+                // --------------------
+                // S1 -> S2 <: T1 -> T2
+                self.subtype_eq(ty21, ty11) && self.subtype_eq(ty12, ty22)
+            },
+            (TyKind::Record(ref f1), TyKind::Record(ref f2)) => {
+                f2.iter()
+                    .all(|(s2, ty2)|
+                        match f1.get(&s2) {
+                            Some(ty) => self.subtype_eq(ty, ty2),
+                            None => false
+                        }
+                    )
+            },
+            _ => false
+        }
     }
 
     fn type_eq(&self, ty1: &Ty, ty2: &Ty) -> bool {
@@ -369,6 +390,76 @@ mod tests_env {
         context.push("x".to_string(), arrow_ty.clone());
         assert_eq!(context.find_by_variable(&"y".to_string()), None);
         assert_eq!(context.find_by_variable(&"x".to_string()), Some(arrow_ty.clone()));
+    }
+}
+
+#[cfg(test)]
+mod tests_subtype_eq {
+    use super::*;
+
+    #[test]
+    fn test_subtype_eq_arrow() {
+        let type_checker = TypeChecker::new();
+
+        // {a=10, b=false, c=true}
+        let mut f1 = Fields::new();
+        f1.insert("a".to_string(), Box::new(Ty::new_nat()));
+        f1.insert("b".to_string(), Box::new(Ty::new_bool()));
+        f1.insert("c".to_string(), Box::new(Ty::new_bool()));
+        let r1 = Ty::new_record(f1);
+
+        // {a=10, b=false}
+        let mut f2 = Fields::new();
+        f2.insert("a".to_string(), Box::new(Ty::new_nat()));
+        f2.insert("b".to_string(), Box::new(Ty::new_bool()));
+        let r2 = Ty::new_record(f2);
+
+        // {b=false, c=true}
+        let mut f3 = Fields::new();
+        f3.insert("b".to_string(), Box::new(Ty::new_bool()));
+        f3.insert("c".to_string(), Box::new(Ty::new_bool()));
+        let r3 = Ty::new_record(f3);
+
+        let arrow1 = Ty::new_arrow(r2, r1.clone());
+        let arrow2 = Ty::new_arrow(r1, r3);
+        let result = type_checker.subtype_eq(&arrow1, &arrow2);
+        assert!(result);
+
+        let result = type_checker.subtype_eq(&arrow2, &arrow1);
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_subtype_eq_record() {
+        let type_checker = TypeChecker::new();
+
+        // {a=10, b=false, c=true}
+        let mut f1 = Fields::new();
+        f1.insert("a".to_string(), Box::new(Ty::new_nat()));
+        f1.insert("b".to_string(), Box::new(Ty::new_bool()));
+        f1.insert("c".to_string(), Box::new(Ty::new_bool()));
+        let r1 = Ty::new_record(f1);
+
+        // {a=10, b=false}
+        let mut f2 = Fields::new();
+        f2.insert("a".to_string(), Box::new(Ty::new_nat()));
+        f2.insert("b".to_string(), Box::new(Ty::new_bool()));
+        let r2 = Ty::new_record(f2);
+
+        // {b=false, c=true}
+        let mut f3 = Fields::new();
+        f3.insert("b".to_string(), Box::new(Ty::new_bool()));
+        f3.insert("c".to_string(), Box::new(Ty::new_bool()));
+        let r3 = Ty::new_record(f3);
+
+        let result = type_checker.subtype_eq(&r1, &r2);
+        assert!(result);
+
+        let result = type_checker.subtype_eq(&r1, &r3);
+        assert!(result);
+
+        let result = type_checker.subtype_eq(&r2, &r3);
+        assert!(!result);
     }
 }
 
