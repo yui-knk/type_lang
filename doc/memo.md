@@ -27,6 +27,7 @@ These types are implemented:
 - Variant
 - Unit
 - Ref
+- Top
 
 These features are not implemented:
 
