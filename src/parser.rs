@@ -75,6 +75,28 @@ impl Parser {
         let mut node = self._parse_expression()?;
         let mut token = self.next_token()?;
 
+        // record "." label
+        //
+        // label is:
+        //        identifier
+        //      | nat
+        if token.has_keyword(&Keyword::DOT) {
+            token = self.next_token()?;
+
+            match token.kind {
+                Kind::Identifier(ref s) => {
+                    node = Node::new_projection(node, s.clone());
+                },
+                Kind::Nat(ref i) => {
+                    node = Node::new_projection(node, i.to_string());
+                },
+                _ => {
+                    return Err(Error::UnexpectedToken("Identifier or Nat as label".to_string(), token));
+                }
+            }
+            token = self.next_token()?;
+        }
+
         if token.has_keyword(&Keyword::COLONEQ) {
             let node2 = self.parse_expression()?;
             node = Node::new_assign(node, node2);
@@ -109,7 +131,7 @@ impl Parser {
             Kind::Keyword(Keyword::ISZERO) => self.parse_iszero(),
             Kind::Keyword(Keyword::SUCC) => self.parse_succ(),
             Kind::Keyword(Keyword::PRED) => self.parse_pred(),
-            Kind::Keyword(Keyword::LBRACE) => self.parse_record_or_projection(),
+            Kind::Keyword(Keyword::LBRACE) => self.parse_record(),
             Kind::Keyword(Keyword::UNIT) => self.parse_unit(),
             Kind::Keyword(Keyword::LET) => self.parse_let(),
             Kind::Keyword(Keyword::LT) => self.parse_tag(),
@@ -195,34 +217,11 @@ impl Parser {
     }
 
     //   "{" fields "}"
-    // | record "." label
-    //
-    // label is:
-    //        identifier
-    //      | nat
-    fn parse_record_or_projection(&mut self) -> Result<Node, Error> {
+    fn parse_record(&mut self) -> Result<Node, Error> {
         let fields = self.parse_fields()?;
         self.expect_keyword(Keyword::RBRACE)?;
         let record = Node::new_record(fields);
-        let token = self.next_token()?;
-
-        match token.kind {
-            // projection
-            Kind::Keyword(Keyword::DOT) => {
-                let token2 = self.next_token()?;
-
-                match token2.kind {
-                    Kind::Identifier(s) => Ok(Node::new_projection(record, s)),
-                    Kind::Nat(i) => Ok(Node::new_projection(record, i.to_string())),
-                    _ => Err(Error::UnexpectedToken("Identifier or Nat as label".to_string(), token))
-                }
-            },
-            // record
-            _ => {
-                self.unget_token(token);
-                Ok(record)
-            }
-        }
+        Ok(record)
     }
 
     // field ("," field) ...
