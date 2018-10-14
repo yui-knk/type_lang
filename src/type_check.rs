@@ -70,6 +70,7 @@ impl TypeChecker {
         if self.type_eq(ty1, ty2) { return true; }
 
         match (&ty1.kind, &ty2.kind) {
+            (_, TyKind::Top) => true,
             (TyKind::Arrow(ref ty11, ref ty12), TyKind::Arrow(ref ty21, ref ty22)) => {
                 // T1 <: S1    S2 <: T2
                 // --------------------
@@ -397,6 +398,16 @@ mod tests_env {
 #[cfg(test)]
 mod tests_subtype_eq {
     use super::*;
+
+    #[test]
+    fn test_subtype_eq_top() {
+        let type_checker = TypeChecker::new();
+        let result = type_checker.subtype_eq(&Ty::new_bool(), &Ty::new_top());
+        assert!(result);
+
+        let result = type_checker.subtype_eq(&Ty::new_top(), &Ty::new_bool());
+        assert!(!result);
+    }
 
     #[test]
     fn test_subtype_eq_arrow() {
