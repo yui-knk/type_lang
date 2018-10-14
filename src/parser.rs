@@ -370,9 +370,9 @@ impl Parser {
     // | "<" label ":" type (, label ":" type) ... ">" // VariantType
     // | atomic_type
     fn parse_type(&mut self) -> Result<Ty, Error> {
-        let token = self.next_token()?;
+        let mut token = self.next_token()?;
 
-        match token.kind {
+        let ty1 = match token.kind {
             // Case: "<" label ":" type (, label ":" type) ... ">"
             Kind::Keyword(Keyword::LT) => {
                 let mut fields = Fields::new();
@@ -390,7 +390,7 @@ impl Parser {
                     }
                 }
 
-                return Ok(Ty::new_variant(fields));
+                Ty::new_variant(fields)
             },
             // Case: "{" label ":" type (, label ":" type) ... "}"
             Kind::Keyword(Keyword::LBRACE) => {
@@ -409,14 +409,15 @@ impl Parser {
                     }
                 }
 
-                return Ok(Ty::new_record(fields));
+                Ty::new_record(fields)
             },
-            _ => ()
-        }
+            _ => {
+                self.unget_token(token);
+                self.parse_atomic_type()?
+            }
+        };
 
-        self.unget_token(token);
-        let ty1 = self.parse_atomic_type()?;
-        let token = self.next_token()?;
+        token = self.next_token()?;
 
         // Case: atomic_type "->" arrow_type
         if token.has_keyword(&Keyword::ARROW) {
@@ -714,6 +715,18 @@ mod tests {
         assert_eq!(parser.parse_type(), Ok(Ty {
             kind: TyKind::Record(fields)
         }));
+    }
+
+    #[test]
+    fn test_parse_record_arrow_type() {
+        let mut parser = Parser::new(" {a:Bool, b:Nat} -> {b:Nat} ".to_string());
+        let mut f1 = TyFields::new();
+        f1.insert("a".to_string(), Box::new(Ty::new_bool()));
+        f1.insert("b".to_string(), Box::new(Ty::new_nat()));
+        let mut f2 = TyFields::new();
+        f2.insert("b".to_string(), Box::new(Ty::new_nat()));
+
+        assert_eq!(parser.parse_type(), Ok(Ty::new_arrow(Ty::new_record(f1), Ty::new_record(f2))));
     }
 
     #[test]
