@@ -845,8 +845,8 @@ mod tests {
         let recode_ty = Ty::new_record(fields);
         assert_eq!(result, Ok(recode_ty));
 
-        // let result = check_type_of_string(" ( -> x : {b:Nat} { x.b } {a=false, b=10} )".to_string());
-        // assert_eq!(result, Ok(Ty::new_nat()));
+        let result = check_type_of_string(" ( -> x : {b:Nat} { x.b } {a=false, b=10} )".to_string());
+        assert_eq!(result, Ok(Ty::new_nat()));
 
         let result = check_type_of_string(" ( -> x : {c:Nat} { x } {a=false, b=10} )".to_string());
         assert!(result.is_err());
