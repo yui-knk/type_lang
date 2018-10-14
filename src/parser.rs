@@ -373,24 +373,46 @@ impl Parser {
     fn parse_type(&mut self) -> Result<Ty, Error> {
         let token = self.next_token()?;
 
-        // Case: "<" label ":" type (, label ":" type) ... ">"
-        if token.has_keyword(&Keyword::LT) {
-            let mut fields = Fields::new();
+        match token.kind {
+            // Case: "<" label ":" type (, label ":" type) ... ">"
+            Kind::Keyword(Keyword::LT) => {
+                let mut fields = Fields::new();
 
-            loop {
-                let s = self.expect_identifier()?;
-                self.expect_keyword(Keyword::COLON)?;
-                let ty = self.parse_type()?;
-                fields.insert(s.clone(), Box::new(ty));
-                let token2 = self.next_token()?;
+                loop {
+                    let s = self.expect_identifier()?;
+                    self.expect_keyword(Keyword::COLON)?;
+                    let ty = self.parse_type()?;
+                    fields.insert(s.clone(), Box::new(ty));
+                    let token2 = self.next_token()?;
 
-                if token2.has_keyword(&Keyword::GT) { break; }
-                if !token2.has_keyword(&Keyword::COMMA) {
-                    return Err(Error::UnexpectedToken(format!("{:?}", Keyword::COMMA), token2));
+                    if token2.has_keyword(&Keyword::GT) { break; }
+                    if !token2.has_keyword(&Keyword::COMMA) {
+                        return Err(Error::UnexpectedToken(format!("{:?}", Keyword::COMMA), token2));
+                    }
                 }
-            }
 
-            return Ok(Ty::new_variant(fields));
+                return Ok(Ty::new_variant(fields));
+            },
+            // Case: "{" label ":" type (, label ":" type) ... "}"
+            Kind::Keyword(Keyword::LBRACE) => {
+                let mut fields = Fields::new();
+
+                loop {
+                    let s = self.expect_identifier()?;
+                    self.expect_keyword(Keyword::COLON)?;
+                    let ty = self.parse_type()?;
+                    fields.insert(s.clone(), Box::new(ty));
+                    let token2 = self.next_token()?;
+
+                    if token2.has_keyword(&Keyword::RBRACE) { break; }
+                    if !token2.has_keyword(&Keyword::COMMA) {
+                        return Err(Error::UnexpectedToken(format!("{:?}", Keyword::COMMA), token2));
+                    }
+                }
+
+                return Ok(Ty::new_record(fields));
+            },
+            _ => ()
         }
 
         self.unget_token(token);
@@ -679,6 +701,19 @@ mod tests {
 
         assert_eq!(parser.parse_type(), Ok(Ty {
             kind: TyKind::Variant(fields)
+        }));
+    }
+
+    #[test]
+    fn test_parse_record_type() {
+        let mut parser = Parser::new(" {a:Bool, b:Nat} ".to_string());
+        let mut fields = TyFields::new();
+
+        fields.insert("a".to_string(), Box::new(Ty::new_bool()));
+        fields.insert("b".to_string(), Box::new(Ty::new_nat()));
+
+        assert_eq!(parser.parse_type(), Ok(Ty {
+            kind: TyKind::Record(fields)
         }));
     }
 

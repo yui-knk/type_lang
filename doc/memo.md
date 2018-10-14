@@ -25,7 +25,6 @@ These features are not implemented:
 
 TODO:
 
-- Record type syntax
 - Ref type syntax
 - Type alias
 
