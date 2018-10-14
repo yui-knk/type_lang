@@ -75,15 +75,36 @@ impl Parser {
         let mut node = self._parse_expression()?;
         let mut token = self.next_token()?;
 
-        // record "." label
-        //
-        // label is:
-        //        identifier
-        //      | nat
         if token.has_keyword(&Keyword::DOT) {
             token = self.next_token()?;
 
             match token.kind {
+                // [apply]
+                //
+                // expr "." "(" expr ")" ("." "(" expr ")") ...
+                Kind::Keyword(Keyword::LPAREN) => {
+                    loop {
+                        let arg = self.parse_expression()?;
+                        self.expect_keyword(Keyword::RPAREN)?;
+                        node = Node::new_apply(node, arg);
+
+                        token = self.next_token()?;
+
+                        if !token.has_keyword(&Keyword::DOT) {
+                            self.unget_token(token);
+                            break;
+                        } else {
+                            self.expect_keyword(Keyword::LPAREN)?;
+                        }
+                    }
+                },
+                // [projection]
+                //
+                // record "." label
+                //
+                // label is:
+                //        identifier
+                //      | nat
                 Kind::Identifier(ref s) => {
                     node = Node::new_projection(node, s.clone());
                 },
@@ -126,7 +147,6 @@ impl Parser {
             Kind::Nat(i) => self.parse_nat(i),
             Kind::Identifier(s) => self.parse_var_ref(s),
             Kind::Keyword(Keyword::ARROW) => self.parse_lambda(),
-            Kind::Keyword(Keyword::LPAREN) => self.parse_apply(),
             Kind::Keyword(Keyword::IF) => self.parse_if(),
             Kind::Keyword(Keyword::ISZERO) => self.parse_iszero(),
             Kind::Keyword(Keyword::SUCC) => self.parse_succ(),
@@ -203,17 +223,6 @@ impl Parser {
         let body = self.parse_expression()?;
 
         Ok(Node::new_let(var, bound_value, body))
-    }
-
-    // "(" exp1 exp2 ")"
-    //
-    // Use "(" as anchor to solve left recursion problem.
-    fn parse_apply(&mut self) -> Result<Node, Error> {
-        let node_1 = self.parse_expression()?;
-        let node_2 = self.parse_expression()?;
-        self.expect_keyword(Keyword::RPAREN)?;
-
-        Ok(Node::new_apply(node_1, node_2))
     }
 
     //   "{" fields "}"
@@ -652,7 +661,7 @@ mod tests {
 
     #[test]
     fn test_parse_apply() {
-        let mut parser = Parser::new(" (x y) ".to_string());
+        let mut parser = Parser::new(" x.(y) ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node {
             kind: Kind::Apply(
@@ -664,7 +673,7 @@ mod tests {
 
     #[test]
     fn test_parse_apply_2() {
-        let mut parser = Parser::new(" (-> x : Bool -> Bool { x } false) ".to_string());
+        let mut parser = Parser::new(" -> x : Bool -> Bool { x }.(false) ".to_string());
 
         assert_eq!(parser.parse(), Ok(Node {
             kind: Kind::Apply(
