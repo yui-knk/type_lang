@@ -72,8 +72,19 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Result<Node, Error> {
-        let mut node = self._parse_expression()?;
         let mut token = self.next_token()?;
+
+        let mut node = if token.has_keyword(&Keyword::LPAREN) {
+            // "(" expr ")"
+            let expr = self._parse_expression()?;
+            self.expect_keyword(Keyword::RPAREN)?;
+            expr
+        } else {
+            self.unget_token(token);
+            self._parse_expression()?
+        };
+
+        token = self.next_token()?;
 
         if token.has_keyword(&Keyword::DOT) {
             token = self.next_token()?;

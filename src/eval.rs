@@ -832,23 +832,22 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_eval_fix() {
         // 10 + x function
         let result = eval_string("
-            fix -> ie:Nat->Nat {
+            (fix -> ie:Nat->Nat {
                 -> x:Nat {
                     if iszero x
                     then 10
                     else succ ie.(pred x)
                 }
-            }.(10)
+            }).(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_nat(20)));
 
         // iseven function
         let result = eval_string("
-            fix -> ie:Nat->Bool {
+            (fix -> ie:Nat->Bool {
                 -> x:Nat {
                     if iszero x
                     then true
@@ -857,13 +856,13 @@ mod tests {
                       then false
                       else ie.(pred pred x)
                 }
-            }.(10)
+            }).(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_true()));
 
         // iseven function
         let result = eval_string("
-            fix -> ie:Nat->Bool {
+            (fix -> ie:Nat->Bool {
                 -> x:Nat {
                     if iszero x
                     then true
@@ -872,7 +871,7 @@ mod tests {
                       then false
                       else ie.(pred pred x)
                 }
-            }.(9)
+            }).(9)
         ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
