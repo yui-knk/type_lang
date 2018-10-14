@@ -1,7 +1,7 @@
 # Current Status
 
 This language is based on TAPL (Types and Programming Languages) textbook.
-Current implementation has almost same features as "fullref", which is the theme of chapter 13.
+Current implementation has almost same features as "fullsub", which is the theme of chapter 15.
 
 These features are implemented:
 
@@ -17,7 +17,16 @@ These features are implemented:
 - Ref.        "ref true".
 - Deref.      "! ref true".
 - Assign.     "let x = ref false in x := true".
-- Type. Only Bool, Nat, Unit, Record and Arrow (function) types are supported.
+
+These types are implemented:
+
+- Arrow (function)
+- Bool
+- Nat
+- Record
+- Variant
+- Unit
+- Ref
 
 These features are not implemented:
 
