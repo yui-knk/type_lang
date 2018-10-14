@@ -209,15 +209,15 @@ impl TypeChecker {
                 Ok(Ty::new_record(fields_type))
             },
             Kind::Projection(ref node, ref label) => {
-                match node.kind {
-                    Kind::Record(ref recode) => {
-                        let value = recode.get(label);
+                let node_type = self.type_of(node)?;
+
+                match node_type.kind {
+                    TyKind::Record(ref fields) => {
+                        let ty_opt = fields.get(label);
 
                         // Maybe this includes semantic analysis
-                        match value {
-                            Some(value_node) => {
-                                self.type_of(value_node)
-                            },
+                        match ty_opt {
+                            Some(ty) => Ok(*ty.clone()),
                             None => Err(Error::IndexError(format!(
                                             "{} is not valid index.", label)))
                         }
