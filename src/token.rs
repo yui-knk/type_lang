@@ -24,6 +24,7 @@ pub enum Keyword {
     FARROW, // '=>'
     BOOL,   // 'Bool' (type)
     NAT,    // 'Nat' (type)
+    TOP,    // 'Top' (type)
     IF,
     THEN,
     ELSE,
@@ -103,6 +104,10 @@ impl Token {
 
     pub fn new_nnat() -> Token {
         Token { kind: Keyword(Keyword::NAT) }
+    }
+
+    pub fn new_top() -> Token {
+        Token { kind: Keyword(Keyword::TOP) }
     }
 
     pub fn new_nat(i: u32) -> Token {
