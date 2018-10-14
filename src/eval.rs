@@ -804,6 +804,16 @@ mod tests {
         let ty = Ty::new_bool();
         let lambda = Node::new_lambda("y".to_string(), node_false, ty);
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
+
+        // subtyping
+        let result = eval_string("( -> x : {b:Nat} { x.b } {a=false, b=10} )".to_string());
+        assert_eq!(result, Ok(Value::new_nat(10)));
+
+        let result = eval_string("( -> x : {b:Nat} { x } {a=false, b=10} )".to_string());
+        let mut fields = ValueFields::new();
+        fields.insert("a".to_string(), Box::new(Value::new_false()));
+        fields.insert("b".to_string(), Box::new(Value::new_nat(10)));
+        assert_eq!(result, Ok(Value::new_record(fields)));
     }
 
     #[test]
@@ -912,6 +922,7 @@ mod tests {
         ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
+
     #[test]
     fn test_eval_unit_derived_form() {
         let result = eval_string("unit; false".to_string());
