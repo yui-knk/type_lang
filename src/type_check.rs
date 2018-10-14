@@ -324,7 +324,7 @@ impl TypeChecker {
 
                 match node_type.kind {
                     TyKind::Arrow(ty1, ty2) => {
-                        if ty1 == ty2 { return Ok(*ty2); }
+                        if self.subtype_eq(&*ty2, &*ty1) { return Ok(*ty2); }
                         return Err(Error::TypeMismatch(format!(
                             "Domain/Result type mismatch. domain: {:?}, result: {:?}", ty1.kind, ty2.kind)));
 
@@ -714,6 +714,22 @@ mod tests {
 
         let result = check_type_of_string("fix -> x : Bool -> Bool { false }".to_string());
         assert!(result.is_err());
+
+        // subtyping
+        let result = check_type_of_string("
+            fix -> x : {a:Bool, b:Nat} -> {b:Nat} {
+                -> y : {a:Bool} { {a=y.a, b=10} }
+            }
+        ".to_string());
+        let mut f1 = Fields::new();
+        f1.insert("a".to_string(), Box::new(Ty::new_bool()));
+        let r1 = Ty::new_record(f1);
+
+        let mut f2 = Fields::new();
+        f2.insert("a".to_string(), Box::new(Ty::new_bool()));
+        f2.insert("b".to_string(), Box::new(Ty::new_nat()));
+        let r2 = Ty::new_record(f2);
+        assert_eq!(result, Ok(Ty::new_arrow(r1, r2)));
     }
 
     #[test]
