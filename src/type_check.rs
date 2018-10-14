@@ -144,7 +144,7 @@ impl TypeChecker {
 
                 match rec_type.kind {
                     TyKind::Arrow(ty1, ty2) => {
-                        if *ty1 == arg_type { return Ok(*ty2); }
+                        if self.subtype_eq(&arg_type, &*ty1) { return Ok(*ty2); }
                         return Err(Error::TypeMismatch(format!(
                             "Argument type mismatch. expected: {:?}, actual: {:?}", ty1.kind, arg_type.kind)));
                     },
@@ -837,6 +837,19 @@ mod tests {
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
         )));
+
+        // subtyping
+        let result = check_type_of_string(" ( -> x : {b:Nat} { x } {a=false, b=10} )".to_string());
+        let mut fields = Fields::new();
+        fields.insert("b".to_string(), Box::new(Ty::new_nat()));
+        let recode_ty = Ty::new_record(fields);
+        assert_eq!(result, Ok(recode_ty));
+
+        // let result = check_type_of_string(" ( -> x : {b:Nat} { x.b } {a=false, b=10} )".to_string());
+        // assert_eq!(result, Ok(Ty::new_nat()));
+
+        let result = check_type_of_string(" ( -> x : {c:Nat} { x } {a=false, b=10} )".to_string());
+        assert!(result.is_err());
     }
 
     #[test]
