@@ -96,6 +96,7 @@ impl TypeChecker {
             },
             (TyKind::Bool, TyKind::Bool) => true,
             (TyKind::Nat, TyKind::Nat) => true,
+            (TyKind::Top, TyKind::Top) => true,
             (TyKind::Record(ref f1), TyKind::Record(ref f2)) => {
                 (f1.iter().len() == f2.iter().len()) &&
                 f1.iter().zip(f2.iter())
@@ -498,6 +499,16 @@ mod tests_type_eq {
         assert!(result);
 
         let result = type_checker.type_eq(&Ty::new_nat(), &Ty::new_bool());
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_type_eq_top() {
+        let type_checker = TypeChecker::new();
+        let result = type_checker.type_eq(&Ty::new_top(), &Ty::new_top());
+        assert!(result);
+
+        let result = type_checker.type_eq(&Ty::new_top(), &Ty::new_bool());
         assert!(!result);
     }
 
