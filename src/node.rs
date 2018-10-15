@@ -5,8 +5,6 @@ pub struct Node {
     pub kind: Kind,
 }
 
-pub type Location = usize;
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Fields {
     elements: Vec<(String, Box<Node>)>
@@ -77,18 +75,7 @@ pub enum Kind {
     Succ(Box<Node>), // holds Zero or Succ(Natural Number)
     Pred(Box<Node>), // holds Zero or Succ(Natural Number)
     Iszero(Box<Node>), // operand
-    Record(Fields), // from label to value node
-    Projection(Box<Node>, String), // Record, label
     If(Box<Node>, Box<Node>, Box<Node>), // cond, then_expr, else_expr
-    Unit,
-    Tag(String, Box<Node>, Box<Ty>), // tag, value, type of variant
-    Case(Box<Node>, Cases), // variant, (tag, (variable, body))
-    As(Box<Node>, Box<Ty>), // expression, ascribed type
-    Fix(Box<Node>), // generator node
-    Ref(Box<Node>), // bound value
-    Deref(Box<Node>), // reference value
-    Assign(Box<Node>, Box<Node>), // reference, value
-    Loc(Location), // location index
 }
 
 use self::Kind::*;
@@ -100,10 +87,6 @@ impl Node {
 
     pub fn new_var_ref(str: String) -> Node {
         Node { kind: VarRef(str) }
-    }
-
-    pub fn new_as(node: Node, ty: Ty) -> Node {
-        Node { kind: As(Box::new(node), Box::new(ty)) }
     }
 
     pub fn new_lambda(var: String, node: Node, ty: Ty) -> Node {
@@ -130,28 +113,8 @@ impl Node {
         Node { kind: Pred(Box::new(node)) }
     }
 
-    pub fn new_fix(node: Node) -> Node {
-        Node { kind: Fix(Box::new(node)) }
-    }
-
-    pub fn new_ref(node: Node) -> Node {
-        Node { kind: Ref(Box::new(node)) }
-    }
-
-    pub fn new_deref(node: Node) -> Node {
-        Node { kind: Deref(Box::new(node)) }
-    }
-
-    pub fn new_assign(left: Node, right: Node) -> Node {
-        Node { kind: Assign(Box::new(left), Box::new(right)) }
-    }
-
     pub fn new_bool(bool: bool) -> Node {
         Node { kind: Bool(bool) }
-    }
-
-    pub fn new_unit() -> Node {
-        Node { kind: Unit }
     }
 
     pub fn new_nat(mut i: u32) -> Node {
@@ -169,43 +132,6 @@ impl Node {
         Node { kind: If(Box::new(cond), Box::new(then_expr), Box::new(else_expr)) }
     }
 
-    pub fn new_tag(s: String, node: Node, ty: Ty) -> Node {
-        Node { kind: Tag(s, Box::new(node), Box::new(ty)) }
-    }
-
-    pub fn new_loc(loc: Location) -> Node {
-        Node { kind: Loc(loc) }
-    }
-
-    pub fn new_case(node: Node, cases: Cases) -> Node {
-        Node { kind: Case(Box::new(node), cases) }
-    }
-
-    pub fn new_projection(record: Node, label: String) -> Node {
-        Node { kind: Projection(Box::new(record), label) }
-    }
-
-    pub fn new_record_from_fields(fields: Fields) -> Node {
-        Node { kind: Record(fields) }
-    }
-
-    pub fn new_record(fields: Vec<(Option<String>, Node)>) -> Node {
-        let mut count = 0;
-        let mut vec = Vec::with_capacity(fields.len());
-
-        for (name, node) in fields {
-            let label = match name {
-                Some(s) => s,
-                None => count.to_string(),
-            };
-
-            vec.push((label, Box::new(node)));
-            count += 1;
-        }
-
-        Node { kind: Record(Fields { elements: vec }) }
-    }
-
     pub fn is_none_expression(&self) -> bool {
         match self.kind {
             NoneExpression => true,
@@ -219,11 +145,7 @@ impl Node {
             Bool(..) => true,
             Zero => true,
             Succ(..) => true,
-            Tag(_, ref node, _) => node.is_value(),
-            Record(ref fields) => fields.iter().all(|(_, node)| node.is_value()),
-            Unit => true,
             Lambda(..) => true,
-            Loc(..) => true,
             _ => false
         }
     }
