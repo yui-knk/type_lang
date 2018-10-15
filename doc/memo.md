@@ -63,3 +63,7 @@ Store is not needed on type check phase because Ref term itself has ref type (e.
 ## Evaluation
 
 Store is needed on evaluation phase. Loc node is introduced to represent the location on store. Ref node is evaluated to the location. Store can be accessed by the location.
+
+# Links
+
+- https://www.cis.upenn.edu/~bcpierce/tapl/
