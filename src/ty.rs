@@ -8,6 +8,7 @@ pub enum Kind {
     Arrow(Box<Ty>, Box<Ty>), // e.g. Bool -> Bool
     Bool,
     Nat, // Natural Number
+    Id(String), // Type variable
 }
 
 use self::Kind::*;
@@ -23,5 +24,9 @@ impl Ty {
 
     pub fn new_nat() -> Ty {
         Ty { kind: Nat }
+    }
+
+    pub fn new_id(str: String) -> Ty {
+        Ty { kind: Id(str) }
     }
 }

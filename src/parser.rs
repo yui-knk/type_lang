@@ -191,6 +191,7 @@ impl Parser {
         match token.kind {
             Kind::Keyword(Keyword::BOOL) => Ok(Ty::new_bool()),
             Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
+            Kind::TyIdentifier(s) => Ok(Ty::new_id(s)),
             _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
         }
     }
@@ -393,6 +394,19 @@ mod tests {
                 "x".to_string(),
                 Box::new(Node{ kind: Kind::Bool(false) }),
                 Box::new(Ty::new_bool())
+            )}
+        ));
+    }
+
+    #[test]
+    fn test_parse_lambda_type_variable() {
+        let mut parser = Parser::new(" -> x : X { false } ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Lambda(
+                "x".to_string(),
+                Box::new(Node{ kind: Kind::Bool(false) }),
+                Box::new(Ty::new_id("X".to_string()))
             )}
         ));
     }
