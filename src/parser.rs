@@ -185,14 +185,14 @@ impl Parser {
 
     //   Bool
     // | Nat
-    fn parse_atomic_type(&mut self) -> Result<Ty, Error> {
+    fn parse_atomic_type(&mut self) -> Result<Option<Ty>, Error> {
         let token = self.next_token()?;
 
         match token.kind {
-            Kind::Keyword(Keyword::BOOL) => Ok(Ty::new_bool()),
-            Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
-            Kind::TyIdentifier(s) => Ok(Ty::new_id(s)),
-            _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
+            Kind::Keyword(Keyword::BOOL) => Ok(Some(Ty::new_bool())),
+            Kind::Keyword(Keyword::NAT) => Ok(Some(Ty::new_nat())),
+            Kind::TyIdentifier(s) => Ok(Some(Ty::new_id(s))),
+            _ => Ok(None)
         }
     }
 
@@ -201,20 +201,34 @@ impl Parser {
     //   atomic_type "->" arrow_type  // ArrowType
     // | "<" label ":" type (, label ":" type) ... ">" // VariantType
     // | atomic_type
-    fn parse_type(&mut self) -> Result<Ty, Error> {
-        let ty1 = self.parse_atomic_type()?;
-        let token = self.next_token()?;
+    fn parse_type(&mut self) -> Result<Option<Ty>, Error> {
+        let ty1_opt = self.parse_atomic_type()?;
 
-        // Case: atomic_type "->" arrow_type
-        if token.has_keyword(&Keyword::ARROW) {
-            let ty2 = self.parse_type()?;
-            return Ok(Ty::new_arrow(ty1, ty2));
+        match ty1_opt {
+            Some(ty1) => {
+                let token = self.next_token()?;
+
+                // Case: atomic_type "->" arrow_type
+                if token.has_keyword(&Keyword::ARROW) {
+                    let ty2_opt = self.parse_type()?;
+
+                    match ty2_opt {
+                        Some(ty2) => {
+                            return Ok(Some(Ty::new_arrow(ty1, ty2)));
+                        },
+                        None => {
+                            return Err(Error::UnknownToken("Can not omit type after ARROW.".to_string()));
+                        }
+                    }
+                }
+
+                // Case: atomic_type
+                // In this case this method should consume only one token.
+                self.unget_token(token);
+                Ok(Some(ty1))
+            },
+            None => Ok(None)
         }
-
-        // Case: atomic_type
-        // In this case this method should consume only one token.
-        self.unget_token(token);
-        Ok(ty1)
     }
 
     fn next_token(&mut self) -> Result<Token, Error> {
@@ -354,7 +368,7 @@ mod tests {
             { kind: Kind::Lambda(
                 "x".to_string(),
                 Box::new(Node { kind: Kind::Bool(false) }),
-                Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_bool()))
+                Box::new(Some(Ty::new_arrow(Ty::new_bool(), Ty::new_bool())))
             )}
         ));
     }
@@ -380,7 +394,7 @@ mod tests {
             { kind: Kind::Lambda(
                 "x".to_string(),
                 Box::new(Node { kind: Kind::Bool(false) }),
-                Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_arrow(Ty::new_bool(), Ty::new_bool())))
+                Box::new(Some(Ty::new_arrow(Ty::new_bool(), Ty::new_arrow(Ty::new_bool(), Ty::new_bool()))))
             )}
         ));
     }
@@ -393,7 +407,7 @@ mod tests {
             { kind: Kind::Lambda(
                 "x".to_string(),
                 Box::new(Node{ kind: Kind::Bool(false) }),
-                Box::new(Ty::new_bool())
+                Box::new(Some(Ty::new_bool()))
             )}
         ));
     }
@@ -406,7 +420,7 @@ mod tests {
             { kind: Kind::Lambda(
                 "x".to_string(),
                 Box::new(Node{ kind: Kind::Bool(false) }),
-                Box::new(Ty::new_id("X".to_string()))
+                Box::new(Some(Ty::new_id("X".to_string())))
             )}
         ));
     }
@@ -432,7 +446,7 @@ mod tests {
                 Box::new(Node { kind: Kind::Lambda(
                     "x".to_string(),
                     Box::new(Node { kind: Kind::VarRef("x".to_string()) }),
-                    Box::new(Ty::new_arrow(Ty::new_bool(), Ty::new_bool()))
+                    Box::new(Some(Ty::new_arrow(Ty::new_bool(), Ty::new_bool())))
                  )}),
                 Box::new(Node { kind: Kind::Bool(false) })
             )

@@ -9,7 +9,7 @@ pub struct Node {
 pub enum Kind {
     NoneExpression,
     VarRef(String),
-    Lambda(String, Box<Node>, Box<Ty>), // variable, body, type of argument
+    Lambda(String, Box<Node>, Box<Option<Ty>>), // variable, body, type of argument
     Let(String, Box<Node>, Box<Node>), // variable, bound value, body
     Apply(Box<Node>, Box<Node>),
     Bool(bool),
@@ -31,7 +31,7 @@ impl Node {
         Node { kind: VarRef(str) }
     }
 
-    pub fn new_lambda(var: String, node: Node, ty: Ty) -> Node {
+    pub fn new_lambda(var: String, node: Node, ty: Option<Ty>) -> Node {
         Node { kind: Lambda(var, Box::new(node), Box::new(ty)) }
     }
 

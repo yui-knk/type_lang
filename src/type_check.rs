@@ -88,11 +88,12 @@ impl TypeChecker {
             },
             // Calculate type of body with var is bound to ty and
             // concat the result with ty as arrow type.
-            Kind::Lambda(ref var, ref body, ref ty) => {
-                self.context.push(var.clone(), *ty.clone());
+            Kind::Lambda(ref var, ref body, ref ty_opt) => {
+                let ty : &Ty = ty_opt.as_ref().as_ref().expect("Type should be resolved here.");
+                self.context.push(var.clone(), ty.clone());
                 let body_ty = self.type_of(body)?;
                 self.context.pop();
-                Ok(Ty::new_arrow(*ty.clone(), body_ty))
+                Ok(Ty::new_arrow(ty.clone(), body_ty))
             },
             Kind::Apply(ref rec, ref arg) => {
                 let rec_type = self.type_of(rec)?;

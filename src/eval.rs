@@ -372,7 +372,7 @@ mod tests {
         let result = eval_string("-> x : Bool -> Bool { x }".to_string());
         let var_ref = Node::new_var_ref("x".to_string());
         let ty = Ty::new_arrow(Ty::new_bool(), Ty::new_bool());
-        let lambda = Node::new_lambda("x".to_string(), var_ref, ty);
+        let lambda = Node::new_lambda("x".to_string(), var_ref, Some(ty));
 
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
@@ -395,7 +395,7 @@ mod tests {
         let node_false = Node::new_bool(false);
         // Type of lambda node is a type of arg.
         let ty = Ty::new_bool();
-        let lambda = Node::new_lambda("y".to_string(), node_false, ty);
+        let lambda = Node::new_lambda("y".to_string(), node_false, Some(ty));
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
     }
 
