@@ -13,7 +13,7 @@ pub struct Parser {
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
-    UnknownToken,
+    UnknownToken(String),
     UnexpectedToken(String, Token), // expected, actual
     UnexpectedEOF,
     NotSupported(Token),
@@ -229,7 +229,7 @@ impl Parser {
 
     fn build_error(&self, error: lexer::Error) -> Error {
         match error {
-            lexer::Error::UnknownToken(_) => Error::UnknownToken,
+            lexer::Error::UnknownToken(s) => Error::UnknownToken(s),
             lexer::Error::UnexpectedEOF => Error::UnexpectedEOF
         }
     }
