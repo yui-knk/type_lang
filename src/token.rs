@@ -7,6 +7,7 @@ pub struct Token {
 pub enum Kind {
     Keyword(Keyword),
     Identifier(String),
+    TyIdentifier(String), // Type variable
     Nat(u32), // NaturalNumber
     EOF, // End of File
 }
@@ -64,6 +65,10 @@ impl Token {
 
     pub fn new_identifier(str: String) -> Token {
         Token { kind: Identifier(str) }
+    }
+
+    pub fn new_ty_identifier(str: String) -> Token {
+        Token { kind: TyIdentifier(str) }
     }
 
     pub fn new_lt() -> Token {
