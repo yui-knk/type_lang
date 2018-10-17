@@ -11,8 +11,14 @@ struct Context {
 }
 
 #[derive(Debug, PartialEq)]
+struct VarGen {
+    id: usize
+}
+
+#[derive(Debug, PartialEq)]
 pub struct TypeChecker {
-    context: Context
+    context: Context,
+    vargen: VarGen,
 }
 
 #[derive(Debug, PartialEq)]
@@ -48,9 +54,23 @@ impl Context {
     }
 }
 
+impl VarGen {
+    fn new() -> VarGen {
+        VarGen { id: 0 }
+    }
+
+    fn next_id(&mut self) -> String {
+        let s = format!{"Var{}", self.id};
+        self.id += 1;
+        s
+    }
+}
+
+type Constraints = Vec<(Ty, Ty)>;
+
 impl TypeChecker {
     pub fn new() -> TypeChecker {
-        TypeChecker { context: Context::new() }
+        TypeChecker { context: Context::new(), vargen: VarGen::new() }
     }
 
     pub fn check(&mut self, node: &Node) -> Result<Ty, Error> {
@@ -65,6 +85,87 @@ impl TypeChecker {
             (TyKind::Bool, TyKind::Bool) => true,
             (TyKind::Nat, TyKind::Nat) => true,
             _ => false
+        }
+    }
+
+    // -- TYPE reconstruction --
+
+    fn recon(&mut self, node: &Node) -> Result<(Ty, Constraints), Error> {
+        match node.kind {
+            Kind::NoneExpression => {
+                // We do not have unit-type now
+                Ok((Ty::new_bool(), Vec::new()))
+            },
+            Kind::VarRef(ref var) => {
+                match self.context.find_by_variable(var) {
+                    Some(ty) => Ok((ty, Vec::new())),
+                    None => Err(Error::VariableNotFound(var.clone()))
+                }
+            },
+            Kind::Lambda(ref var, ref body, ref ty_opt) => {
+                match **ty_opt {
+                    Some(ref ty) => {
+                        self.context.push(var.clone(), ty.clone());
+                        let (body_ty, constr2) = self.recon(body)?;
+                        self.context.pop();
+                        Ok((Ty::new_arrow(ty.clone(), body_ty), constr2))
+                    },
+                    None => {
+                        let ty = Ty::new_id(self.vargen.next_id());
+                        self.context.push(var.clone(), ty.clone());
+                        let (body_ty, constr2) = self.recon(body)?;
+                        self.context.pop();
+                        Ok((Ty::new_arrow(ty.clone(), body_ty), constr2))
+                    }
+                }
+            },
+            Kind::Apply(ref rec, ref arg) => {
+                // t1 : T1   t2: T2
+                // ----------------
+                // t1 t2 : X  {t1 = t2 -> X}
+                let (rec_type, mut constr1) = self.recon(rec)?;
+                let (arg_type, mut constr2) = self.recon(arg)?;
+                let id = self.vargen.next_id();
+                let mut new_constr = vec!((rec_type, Ty::new_arrow(arg_type, Ty::new_id(id.clone()))));
+                new_constr.append(&mut constr1);
+                new_constr.append(&mut constr2);
+                Ok((Ty::new_id(id), new_constr))
+            },
+            Kind::Let(ref var, ref bound, ref body) => {
+                let (bound_ty, mut constr1) = self.recon(bound)?;
+                self.context.push(var.clone(), bound_ty);
+                let (body_ty, mut constr2) = self.recon(body)?;
+                self.context.pop();
+                constr1.append(&mut constr2);
+                Ok((body_ty, constr1))
+            },
+            Kind::Bool(_) => Ok((Ty::new_bool(), Vec::new())),
+            Kind::Zero => Ok((Ty::new_nat(), Vec::new())),
+            Kind::Succ(ref operand) => {
+                let (operand_type, mut constr1) = self.recon(operand)?;
+                constr1.push((Ty::new_nat(), operand_type));
+                Ok((Ty::new_nat(), constr1))
+            },
+            Kind::Pred(ref operand) => {
+                let (operand_type, mut constr1) = self.recon(operand)?;
+                constr1.push((Ty::new_nat(), operand_type));
+                Ok((Ty::new_nat(), constr1))
+            },
+            Kind::Iszero(ref operand) => {
+                let (operand_type, mut constr1) = self.recon(operand)?;
+                constr1.push((Ty::new_nat(), operand_type));
+                Ok((Ty::new_bool(), constr1))
+            },
+            Kind::If(ref cond, ref then_expr, ref else_expr) => {
+                let (cond_type, mut constr1) = self.recon(cond)?;
+                let (then_type, mut constr2) = self.recon(then_expr)?;
+                let (else_type, mut constr3) = self.recon(else_expr)?;
+                let mut constr = vec![(cond_type, Ty::new_bool()), (then_type.clone(), else_type.clone())];
+                constr.append(&mut constr1);
+                constr.append(&mut constr2);
+                constr.append(&mut constr3);
+                Ok((then_type, constr))
+            },
         }
     }
 
@@ -186,6 +287,19 @@ mod tests_env {
 }
 
 #[cfg(test)]
+mod tests_vargen {
+    use super::*;
+
+    #[test]
+    fn test_vargen() {
+        let mut vargen = VarGen::new();
+
+        assert_eq!(vargen.next_id(), "Var0".to_string());
+        assert_eq!(vargen.next_id(), "Var1".to_string());
+    }
+}
+
+#[cfg(test)]
 mod tests_type_eq {
     use super::*;
 
@@ -221,6 +335,56 @@ mod tests_type_eq {
 
         let result = type_checker.type_eq(&Ty::new_nat(), &Ty::new_bool());
         assert!(!result);
+    }
+}
+
+#[cfg(test)]
+mod tests_recon {
+    use super::*;
+    use parser::{Parser};
+
+    fn recon_string(str: String) -> Result<(Ty, Constraints), Error> {
+        let mut parser = Parser::new(str);
+        let node = parser.parse().unwrap();
+        let mut type_checker = TypeChecker::new();
+        type_checker.recon(&node)
+    }
+
+    #[test]
+    fn test_recon_lambda() {
+        let result = recon_string(" -> x : Bool { false } ".to_string());
+        assert_eq!(result, Ok((Ty::new_arrow(Ty::new_bool(), Ty::new_bool()), Vec::new())));
+
+        let result = recon_string(" -> x { x } ".to_string());
+        assert_eq!(result, Ok((
+            Ty::new_arrow(Ty::new_id("Var0".to_string()), Ty::new_id("Var0".to_string())),
+            Vec::new()
+        )));
+
+        let result = recon_string(" -> x { false } ".to_string());
+        assert_eq!(result, Ok((
+            Ty::new_arrow(Ty::new_id("Var0".to_string()), Ty::new_bool()),
+            Vec::new()
+        )));
+
+        let result = recon_string(" -> x { x.(1) } ".to_string());
+        assert_eq!(result, Ok((
+            Ty::new_arrow(Ty::new_id("Var0".to_string()), Ty::new_id("Var1".to_string())),
+            vec![
+                (Ty::new_id("Var0".to_string()), Ty::new_arrow(Ty::new_nat(), Ty::new_id("Var1".to_string()))),
+                (Ty::new_nat(), Ty::new_nat())
+            ]
+        )));
+
+        let result = recon_string(" -> x { x.(1).(false) } ".to_string());
+        assert_eq!(result, Ok((
+            Ty::new_arrow(Ty::new_id("Var0".to_string()), Ty::new_id("Var2".to_string())),
+            vec![
+                (Ty::new_id("Var1".to_string()), Ty::new_arrow(Ty::new_bool(), Ty::new_id("Var2".to_string()))),
+                (Ty::new_id("Var0".to_string()), Ty::new_arrow(Ty::new_nat(), Ty::new_id("Var1".to_string()))),
+                (Ty::new_nat(), Ty::new_nat())
+            ]
+        )));
     }
 }
 
