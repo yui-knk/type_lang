@@ -152,8 +152,15 @@ impl Parser {
     // arrow_type is a type of variable x, not a type of whole lambda.
     fn parse_lambda(&mut self) -> Result<Node, Error> {
         let var = self.expect_identifier()?;
-        self.expect_keyword(Keyword::COLON)?;
-        let ty = self.parse_type()?;
+        let token = self.next_token()?;
+
+        let ty = if token.has_keyword(&Keyword::COLON) {
+            self.parse_type()?
+        } else {
+            self.unget_token(token);
+            None
+        };
+
         self.expect_keyword(Keyword::LBRACE)?;
         let node = self.parse_expression()?;
         self.expect_keyword(Keyword::RBRACE)?;
@@ -408,6 +415,19 @@ mod tests {
                 "x".to_string(),
                 Box::new(Node{ kind: Kind::Bool(false) }),
                 Box::new(Some(Ty::new_bool()))
+            )}
+        ));
+    }
+
+    #[test]
+    fn test_parse_lambda_type_not_specified() {
+        let mut parser = Parser::new(" -> x { false } ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::Lambda(
+                "x".to_string(),
+                Box::new(Node{ kind: Kind::Bool(false) }),
+                Box::new(None)
             )}
         ));
     }
