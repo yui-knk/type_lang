@@ -1,7 +1,7 @@
 # Current Status
 
 This language is based on TAPL (Types and Programming Languages) textbook.
-Current implementation has almost same features as "fullsub", which is the theme of chapter 15.
+Current implementation has almost same features as "fullrecon", which is the theme of chapter 22.
 
 These features are implemented:
 
@@ -9,25 +9,13 @@ These features are implemented:
 - App.        "-> x : Bool { x }.(false)".
 - If.         "if true then false else true".
 - Let.        "let x = 1 in x".
-- As.         "false as Bool".
-- Record.     "{10, a=false, true}".
-- Projection. "{10, a=false, true}.a".
-- Variant.    "case <a=1> as <a:Nat, b:Bool> of <a=x> => x | <b=y> => 2".
-- Sequencing. "unit; false".
-- Ref.        "ref true".
-- Deref.      "! ref true".
-- Assign.     "let x = ref false in x := true".
 
 These types are implemented:
 
 - Arrow (function)
 - Bool
 - Nat
-- Record
-- Variant
-- Unit
-- Ref
-- Top
+- Id (type variable)
 
 These features are not implemented:
 
