@@ -25,7 +25,10 @@ pub struct TypeChecker {
 pub enum Error {
     TypeMismatch(String),
     VariableNotFound(String),
-    IndexError(String)
+    IndexError(String),
+    CircularConstraints(String),
+    UnsolvableConstraints(Ty, Ty),
+    UnexpectedConstraints(Ty, Ty),
 }
 
 impl Context {
@@ -74,9 +77,12 @@ impl TypeChecker {
     }
 
     pub fn check(&mut self, node: &Node) -> Result<Ty, Error> {
-        self.type_of(node)
+        let (ty, constr1) = self.recon(&node)?;
+        let constr2 = self.unify(constr1)?;
+        self.applysubst(ty, constr2)
     }
 
+    #[allow(dead_code)]
     fn type_eq(&self, ty1: &Ty, ty2: &Ty) -> bool {
         match (&ty1.kind, &ty2.kind) {
             (TyKind::Arrow(ref ty11, ref ty12), TyKind::Arrow(ref ty21, ref ty22)) => {
@@ -169,8 +175,96 @@ impl TypeChecker {
         }
     }
 
+    fn applysubst(&self, mut ty: Ty, constr: Constraints) -> Result<Ty, Error> {
+        // I'm not clear why fold with reverse order...
+        for (t1, t2) in constr.into_iter().rev() {
+            match t1.clone().kind {
+                // All left values of "unify" function's result should be Id Ty.
+                TyKind::Id(s) => {
+                    ty = self.replace_constr(&s, &t2, ty)
+                },
+                _ => { return Err(Error::UnexpectedConstraints(t1, t2)); }
+            }
+        }
+
+        Ok(ty)
+    }
+
+    fn occursin(&self, id: &String, ty: &Ty) -> bool {
+        match ty.kind {
+            TyKind::Arrow(ref l, ref r) => self.occursin(id, &*l) || self.occursin(id, &*r),
+            TyKind::Bool => false,
+            TyKind::Nat => false,
+            TyKind::Id(ref s) => s == id
+        }
+    }
+
+    fn replace_constr(&self, id: &String, ty: &Ty, ty1: Ty) -> Ty {
+        match ty1.clone().kind {
+            TyKind::Arrow(l, r) => Ty::new_arrow(self.replace_constr(id, ty, *l), self.replace_constr(id, ty, *r)),
+            TyKind::Bool => ty1,
+            TyKind::Nat => ty1,
+            TyKind::Id(s) => {
+                if s == *id {
+                    ty.clone()
+                } else {
+                    ty1
+                }
+            }
+        }
+    }
+
+    // This function replace type variable whose id is equal to "id" argument
+    // with "ty" type.
+    fn replace_constrs(&self, id: &String, ty: &Ty, constr: Constraints) -> Constraints {
+        constr.into_iter().map(|(t1, t2)| (self.replace_constr(id, ty, t1), self.replace_constr(id, ty, t2))).collect()
+    }
+
+    // This function gets type constraints and returns an assignment.
+    // All left values of returned constraints are Id Ty.
+    fn unify(&mut self, mut constr: Constraints) -> Result<Constraints, Error> {
+        if constr.len() == 0 { return Ok(Vec::new()); }
+
+        let (t1, t2) = constr.pop().unwrap();
+        match (t1.clone().kind, t2.clone().kind) {
+            (t, TyKind::Id(id)) => {
+                // Same type variable
+                if t == TyKind::Id(id.clone()) { return self.unify(constr); }
+                if self.occursin(&id, &t1) { return Err(Error::CircularConstraints(id.clone())) };
+                constr = self.replace_constrs(&id, &t1, constr);
+                let mut result = self.unify(constr)?;
+                // t1 is assigned to a type variable.
+                result.push((Ty::new_id(id), t1));
+                Ok(result)
+            },
+            (TyKind::Id(id), t) => {
+                // Same type variable
+                if t == TyKind::Id(id.clone()) { return self.unify(constr); }
+                if self.occursin(&id, &t2) { return Err(Error::CircularConstraints(id.clone())) };
+                constr = self.replace_constrs(&id, &t2, constr);;
+                let mut result = self.unify(constr)?;
+                // t2 is assigned to a type variable.
+                result.push((Ty::new_id(id), t2));
+                Ok(result)
+            },
+            (TyKind::Bool, TyKind::Bool) => {
+                self.unify(constr)
+            },
+            (TyKind::Nat, TyKind::Nat) => {
+                self.unify(constr)
+            },
+            (TyKind::Arrow(t11, t12), TyKind::Arrow(t21, t22)) => {
+                constr.push((*t11, *t21));
+                constr.push((*t12, *t22));
+                self.unify(constr)
+            },
+            _ => Err(Error::UnsolvableConstraints(t1, t2))
+        }
+    }
+
     // -- TYPING --
 
+    #[allow(dead_code)]
     fn type_of(&mut self, node: &Node) -> Result<Ty, Error> {
         match node.kind {
             Kind::NoneExpression => Ok(Ty::new_bool()), // We do not have unit-type now
@@ -339,6 +433,61 @@ mod tests_type_eq {
 }
 
 #[cfg(test)]
+mod tests_unify {
+    use super::*;
+    use parser::{Parser};
+
+    fn unify_string(str: String) -> Result<Constraints, Error> {
+        let mut parser = Parser::new(str);
+        let node = parser.parse().unwrap();
+        let mut type_checker = TypeChecker::new();
+        let (_ty, constr) = type_checker.recon(&node)?;
+        type_checker.unify(constr)
+    }
+
+    #[test]
+    fn test_unify_lambda() {
+        let result = unify_string(" -> x : Bool { false } ".to_string());
+        assert_eq!(result, Ok(
+            Vec::new()
+        ));
+
+        let result = unify_string(" -> x { x } ".to_string());
+        assert_eq!(result, Ok(
+            Vec::new()
+        ));
+
+        let result = unify_string(" -> x { false } ".to_string());
+        assert_eq!(result, Ok(
+            Vec::new()
+        ));
+
+        let result = unify_string(" -> x { x.(1) } ".to_string());
+        assert_eq!(result, Ok(
+            vec![
+                (Ty::new_id("Var0".to_string()), Ty::new_arrow(Ty::new_nat(), Ty::new_id("Var1".to_string())))
+            ]
+        ));
+
+        let result = unify_string(" -> x { x.(1).(false) } ".to_string());
+        assert_eq!(result, Ok(
+            vec![
+                (Ty::new_id("Var1".to_string()), Ty::new_arrow(Ty::new_bool(), Ty::new_id("Var2".to_string()))),
+                (Ty::new_id("Var0".to_string()), Ty::new_arrow(Ty::new_nat(), Ty::new_id("Var1".to_string()))),
+            ]
+        ));
+
+        let result = unify_string(" -> x { iszero x.(1) } ".to_string());
+        assert_eq!(result, Ok(
+            vec![
+                (Ty::new_id("Var0".to_string()), Ty::new_arrow(Ty::new_nat(), Ty::new_nat())),
+                (Ty::new_id("Var1".to_string()), Ty::new_nat()),
+            ]
+        ));
+    }
+}
+
+#[cfg(test)]
 mod tests_recon {
     use super::*;
     use parser::{Parser};
@@ -383,6 +532,36 @@ mod tests_recon {
                 (Ty::new_id("Var1".to_string()), Ty::new_arrow(Ty::new_bool(), Ty::new_id("Var2".to_string()))),
                 (Ty::new_id("Var0".to_string()), Ty::new_arrow(Ty::new_nat(), Ty::new_id("Var1".to_string()))),
                 (Ty::new_nat(), Ty::new_nat())
+            ]
+        )));
+
+        let result = recon_string(" -> x { iszero x.(1) } ".to_string());
+        assert_eq!(result, Ok((
+            Ty::new_arrow(Ty::new_id("Var0".to_string()), Ty::new_bool()),
+            vec![
+                (Ty::new_id("Var0".to_string()), Ty::new_arrow(Ty::new_nat(), Ty::new_id("Var1".to_string()))),
+                (Ty::new_nat(), Ty::new_nat()),
+                (Ty::new_nat(), Ty::new_id("Var1".to_string())),
+            ]
+        )));
+
+        let result = recon_string("-> x : Bool -> Bool { -> x : Bool -> Bool { x }.(x) }".to_string());
+        assert_eq!(result, Ok((
+            Ty::new_arrow(
+                Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
+                Ty::new_id("Var0".to_string())
+            ),
+            vec![
+                (
+                    Ty::new_arrow(
+                        Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
+                        Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
+                    ),
+                    Ty::new_arrow(
+                        Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
+                        Ty::new_id("Var0".to_string())
+                    ),
+                )
             ]
         )));
     }
@@ -511,6 +690,19 @@ mod tests {
     #[test]
     fn test_check_type_mismatch() {
         let result = check_type_of_string("false.(true)".to_string());
-        assert_eq!(result, Err(Error::TypeMismatch("Bool is not arrow type.".to_string())));
+        assert_eq!(result, Err(Error::UnsolvableConstraints(
+            Ty::new_bool(),
+            Ty::new_arrow(Ty::new_bool(), Ty::new_id("Var0".to_string()))
+        )));
+    }
+
+    #[test]
+    fn test_check_type_variable() {
+        let result = check_type_of_string("
+            (-> x { x.(1) }).(
+                -> y { iszero y }
+            )
+        ".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
     }
 }
