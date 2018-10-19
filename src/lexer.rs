@@ -62,6 +62,7 @@ impl Lexer {
             'T' => self.read_top(),
             '0'...'9' => self.read_nat(),
             'a'...'z' => self.read_identifier_or_keyword(),
+            'A'...'Z' => self.read_type_identifier(),
             '\n' => {
                 self.next_line();
                 self.next_token()
@@ -141,6 +142,12 @@ impl Lexer {
             Some(k) => Ok(Token::new_keyword(k)),
             None => Ok(Token::new_identifier(self.token_string().to_string())),
         }
+    }
+
+    fn read_type_identifier(&mut self) -> Result<Token, Error> {
+        self.next_while(|c| c.is_alphanumeric());
+
+        Ok(Token::new_ty_identifier(self.token_string().to_string()))
     }
 
     fn read_vbar(&mut self) -> Result<Token, Error> {
@@ -599,6 +606,14 @@ mod tests {
         let mut lexer = Lexer::new(" bar".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_identifier("bar".to_string())));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_ty_identifier() {
+        let mut lexer = Lexer::new(" X".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_ty_identifier("X".to_string())));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
