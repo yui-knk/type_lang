@@ -364,7 +364,7 @@ impl TypeChecker {
             Kind::Loc(..) => {
                 Err(Error::TypeMismatch(format!("User can not input Loc node: {:?}.", node)))
             },
-            // _ => panic!("")
+            _ => panic!("")
         }
     }
 }

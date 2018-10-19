@@ -211,18 +211,32 @@ impl Parser {
         Ok(Node::new_var_ref(str))
     }
 
-    // "->" x ":" arrow_type "{" exp "}"
+    //   "->" x ":" arrow_type "{" exp "}"
+    // | "->" X "{" exp "}"
     //
     // arrow_type is a type of variable x, not a type of whole lambda.
     fn parse_lambda(&mut self) -> Result<Node, Error> {
-        let var = self.expect_identifier()?;
-        self.expect_keyword(Keyword::COLON)?;
-        let ty = self.parse_type()?;
-        self.expect_keyword(Keyword::LBRACE)?;
-        let node = self.parse_expression()?;
-        self.expect_keyword(Keyword::RBRACE)?;
+        let token = self.next_token()?;
 
-        Ok(Node::new_lambda(var, node, ty))
+        match token.kind {
+            Kind::Identifier(var) => {
+                self.expect_keyword(Keyword::COLON)?;
+                let ty = self.parse_type()?;
+                self.expect_keyword(Keyword::LBRACE)?;
+                let node = self.parse_expression()?;
+                self.expect_keyword(Keyword::RBRACE)?;
+
+                Ok(Node::new_lambda(var, node, ty))
+            },
+            Kind::TyIdentifier(var) => {
+                self.expect_keyword(Keyword::LBRACE)?;
+                let node = self.parse_expression()?;
+                self.expect_keyword(Keyword::RBRACE)?;
+
+                Ok(Node::new_ty_abs(var, node))
+            },
+            _ => Err(Error::UnexpectedToken("Identifier or TyIdentifier expected.".to_string(), token))
+        }
     }
 
     // "let" variable "=" bound_value "in" body
@@ -696,6 +710,18 @@ mod tests {
                 Box::new(Node { kind: Kind::Bool(false) })
             )
         }));
+    }
+
+    #[test]
+    fn test_parse_ty_abs() {
+        let mut parser = Parser::new(" -> X { false } ".to_string());
+
+        assert_eq!(parser.parse(), Ok(Node
+            { kind: Kind::TyAbs(
+                "X".to_string(),
+                Box::new(Node { kind: Kind::Bool(false) }),
+            )}
+        ));
     }
 
     #[test]

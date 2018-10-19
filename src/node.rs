@@ -89,6 +89,7 @@ pub enum Kind {
     Deref(Box<Node>), // reference value
     Assign(Box<Node>, Box<Node>), // reference, value
     Loc(Location), // location index
+    TyAbs(String, Box<Node>), // type variable, body. (Type abstruction)
 }
 
 use self::Kind::*;
@@ -177,6 +178,10 @@ impl Node {
         Node { kind: Loc(loc) }
     }
 
+    pub fn new_ty_abs(s: String, node: Node) -> Node {
+        Node { kind: TyAbs(s, Box::new(node)) }
+    }
+
     pub fn new_case(node: Node, cases: Cases) -> Node {
         Node { kind: Case(Box::new(node), cases) }
     }
@@ -223,6 +228,7 @@ impl Node {
             Record(ref fields) => fields.iter().all(|(_, node)| node.is_value()),
             Unit => true,
             Lambda(..) => true,
+            TyAbs(..) => true,
             Loc(..) => true,
             _ => false
         }
