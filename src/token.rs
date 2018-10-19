@@ -16,16 +16,18 @@ pub enum Kind {
 pub enum Keyword {
     TRUE,
     FALSE,
-    LBRACE, // '{'
-    RBRACE, // '}'
-    LPAREN, // '('
-    RPAREN, // ')'
-    COLON,  // ':'
-    ARROW,  // '->'
-    FARROW, // '=>'
-    BOOL,   // 'Bool' (type)
-    NAT,    // 'Nat' (type)
-    TOP,    // 'Top' (type)
+    LBRACE,   // '{'
+    RBRACE,   // '}'
+    LPAREN,   // '('
+    RPAREN,   // ')'
+    LBRACKET, // '['
+    RBRACKET, // ']'
+    COLON,    // ':'
+    ARROW,    // '->'
+    FARROW,   // '=>'
+    BOOL,     // 'Bool' (type)
+    NAT,      // 'Nat' (type)
+    TOP,      // 'Top' (type)
     IF,
     THEN,
     ELSE,
@@ -93,6 +95,14 @@ impl Token {
 
     pub fn new_rparen() -> Token {
         Token { kind: Keyword(Keyword::RPAREN) }
+    }
+
+    pub fn new_lbracket() -> Token {
+        Token { kind: Keyword(Keyword::LBRACKET) }
+    }
+
+    pub fn new_rbracket() -> Token {
+        Token { kind: Keyword(Keyword::RBRACKET) }
     }
 
     pub fn new_colon() -> Token {

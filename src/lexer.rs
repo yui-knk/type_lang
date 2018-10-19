@@ -47,6 +47,8 @@ impl Lexer {
             '}' => self.read_rbrace(),
             '(' => self.read_lparen(),
             ')' => self.read_rparen(),
+            '[' => self.read_lbracket(),
+            ']' => self.read_rbracket(),
             ':' => self.read_colon(),
             ';' => self.read_semicolon(),
             '=' => self.read_eq_or_farrow(),
@@ -188,6 +190,16 @@ impl Lexer {
     fn read_rparen(&mut self) -> Result<Token, Error> {
         self.next_char();
         Ok(Token::new_rparen())
+    }
+
+    fn read_lbracket(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_lbracket())
+    }
+
+    fn read_rbracket(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_rbracket())
     }
 
     fn read_colon(&mut self) -> Result<Token, Error> {
@@ -452,6 +464,15 @@ mod tests {
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::LPAREN)));
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::RPAREN)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_brackets() {
+        let mut lexer = Lexer::new("  [ ]  ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::LBRACKET)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::RBRACKET)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
