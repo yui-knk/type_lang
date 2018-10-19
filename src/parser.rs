@@ -398,6 +398,8 @@ impl Parser {
 
     //   Bool
     // | Nat
+    // | Top
+    // | Type variable
     fn parse_atomic_type(&mut self) -> Result<Ty, Error> {
         let token = self.next_token()?;
 
@@ -405,6 +407,7 @@ impl Parser {
             Kind::Keyword(Keyword::BOOL) => Ok(Ty::new_bool()),
             Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
             Kind::Keyword(Keyword::TOP) => Ok(Ty::new_top()),
+            Kind::TyIdentifier(s) => Ok(Ty::new_id(s)),
             _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
         }
     }
@@ -778,6 +781,14 @@ mod tests {
         let mut parser = Parser::new("Top".to_string());
         assert_eq!(parser.parse_type(), Ok(Ty {
             kind: TyKind::Top
+        }));
+    }
+
+    #[test]
+    fn test_parse_type_variable() {
+        let mut parser = Parser::new("X".to_string());
+        assert_eq!(parser.parse_type(), Ok(Ty {
+            kind: TyKind::Id("X".to_string())
         }));
     }
 
