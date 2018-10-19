@@ -367,11 +367,51 @@ impl TypeChecker {
                 let node_type = self.type_of(node)?;
                 Ok(Ty::new_all(s.clone(), node_type))
             },
+            Kind::TyApply(ref node, ref ty) => {
+                let node_type = self.type_of(node)?;
+
+                match node_type.kind {
+                    TyKind::All(ref s, ref ty2) => Ok(self.replace_types(s, ty, *ty2.clone())),
+                    _ => Err(Error::TypeMismatch(format!("{:?} is not universal type.", node_type.kind)))
+                }
+            },
             Kind::Loc(..) => {
                 Err(Error::TypeMismatch(format!("User can not input Loc node: {:?}.", node)))
             },
-            _ => panic!(format!("{:?}", node))
+            // _ => panic!(format!("{:?}", node))
         }
+    }
+
+    // Replace type variables in "ty1" with "ty" whose id is same to "id".
+    fn replace_types(&self, id: &String, ty: &Ty, ty1: Ty) -> Ty {
+        match ty1.clone().kind {
+            TyKind::Arrow(l, r) => Ty::new_arrow(self.replace_types(id, ty, *l), self.replace_types(id, ty, *r)),
+            TyKind::Bool => ty1,
+            TyKind::Nat => ty1,
+            TyKind::Top => ty1,
+            // TyKind::Record => ty1,
+            // TyKind::Variant => ty1,
+            TyKind::Unit => ty1,
+            // TyKind::Ref => ty1,
+            TyKind::Id(s) => {
+                if s == *id {
+                    ty.clone()
+                } else {
+                    ty1
+                }
+            }
+            TyKind::All(s, ty2) => {
+                if s == *id {
+                    // New same name type variable is introduced here
+                    // so stop to replace.
+                    ty1
+                } else {
+                    self.replace_types(id, ty, *ty2)
+                }
+            },
+            _ => panic!("replace_types does not support {:?}.", ty1)
+        }
+
     }
 }
 
@@ -944,6 +984,74 @@ mod tests {
                 Ty::new_arrow(
                     Ty::new_arrow(Ty::new_id("X".to_string()), Ty::new_id("X".to_string())),
                     Ty::new_arrow(Ty::new_id("X".to_string()), Ty::new_id("X".to_string()))
+                )
+            )
+        ));
+    }
+
+    #[test]
+    fn test_check_ty_apply() {
+        let result = check_type_of_string(" -> X { false } [Nat]".to_string());
+        assert_eq!(result, Ok(Ty::new_bool()));
+
+        // id function
+        let result = check_type_of_string(" -> X { -> x: X { x } } [Nat]".to_string());
+        assert_eq!(result, Ok(
+            Ty::new_arrow(Ty::new_nat(), Ty::new_nat())
+        ));
+
+        // id function
+        let result = check_type_of_string(" -> X { -> x: X { x } } [Bool]".to_string());
+        assert_eq!(result, Ok(
+            Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
+        ));
+
+        let result = check_type_of_string(" -> X { -> x: Y { x } } [Nat]".to_string());
+        assert_eq!(result, Ok(
+            Ty::new_arrow(Ty::new_id("Y".to_string()), Ty::new_id("Y".to_string()))
+        ));
+
+        // double function
+        let result = check_type_of_string("
+            -> X {
+                -> f: X -> X {
+                    -> a: X { f.(f.(a)) }
+                }
+            } [Nat]
+        ".to_string());
+        assert_eq!(result, Ok(
+            Ty::new_arrow(
+                Ty::new_arrow(Ty::new_nat(), Ty::new_nat()),
+                Ty::new_arrow(Ty::new_nat(), Ty::new_nat())
+            )
+        ));
+
+        let result = check_type_of_string("
+            -> X {
+                -> a: X {
+                    -> X {
+                        -> b: X { {first=a, second=b} }
+                    }
+                }
+            } [Nat]
+        ".to_string());
+
+        // Nat -> (All X. X -> {Nat, X})
+        let mut fields = Fields::new();
+        // fields.insert("first".to_string(),  Box::new(Ty::new_nat()));
+        // TODO: This is bug!
+        fields.insert("first".to_string(), Box::new(Ty::new_id("X".to_string())));
+        fields.insert("second".to_string(), Box::new(Ty::new_id("X".to_string())));
+
+        assert_eq!(result, Ok(
+            Ty::new_arrow(
+                Ty::new_nat(),
+                Ty::new_all(
+                    "X".to_string(),
+                    Ty::new_arrow(
+                        Ty::new_id("X".to_string()),
+                        Ty::new_record(fields)
+                    )
                 )
             )
         ));
