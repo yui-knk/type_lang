@@ -129,6 +129,16 @@ impl Parser {
             token = self.next_token()?;
         }
 
+        // [type apply]
+        //
+        // expr "[" type "]"
+        if token.has_keyword(&Keyword::LBRACKET) {
+            let ty = self.parse_type()?;
+            self.expect_keyword(Keyword::RBRACKET)?;
+            node = Node::new_ty_apply(node, ty);
+            token = self.next_token()?;
+        }
+
         if token.has_keyword(&Keyword::COLONEQ) {
             let node2 = self.parse_expression()?;
             node = Node::new_assign(node, node2);
@@ -721,6 +731,18 @@ mod tests {
                 "X".to_string(),
                 Box::new(Node { kind: Kind::Bool(false) }),
             )}
+        ));
+    }
+
+    #[test]
+    fn test_parse_ty_apply() {
+        let mut parser = Parser::new(" -> X { false } [Nat]".to_string());
+
+        assert_eq!(parser.parse(), Ok(
+            Node::new_ty_apply(
+                Node::new_ty_abs("X".to_string(), Node::new_bool(false)),
+                Ty::new_nat()
+            )
         ));
     }
 

@@ -90,6 +90,7 @@ pub enum Kind {
     Assign(Box<Node>, Box<Node>), // reference, value
     Loc(Location), // location index
     TyAbs(String, Box<Node>), // type variable, body. (Type abstruction)
+    TyApply(Box<Node>, Box<Ty>), // (Type apply)
 }
 
 use self::Kind::*;
@@ -180,6 +181,10 @@ impl Node {
 
     pub fn new_ty_abs(s: String, node: Node) -> Node {
         Node { kind: TyAbs(s, Box::new(node)) }
+    }
+
+    pub fn new_ty_apply(node: Node, ty: Ty) -> Node {
+        Node { kind: TyApply(Box::new(node), Box::new(ty)) }
     }
 
     pub fn new_case(node: Node, cases: Cases) -> Node {
