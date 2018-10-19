@@ -98,6 +98,7 @@ impl TypeChecker {
             (TyKind::Bool, TyKind::Bool) => true,
             (TyKind::Nat, TyKind::Nat) => true,
             (TyKind::Top, TyKind::Top) => true,
+            (TyKind::Id(ref s1), TyKind::Id(ref s2)) => s1 == s2,
             (TyKind::Record(ref f1), TyKind::Record(ref f2)) => {
                 (f1.iter().len() == f2.iter().len()) &&
                 f1.iter().zip(f2.iter())
@@ -361,10 +362,15 @@ impl TypeChecker {
                     _ => Err(Error::TypeMismatch(format!("{:?} is not ref type.", left_type.kind)))
                 }
             },
+            Kind::TyAbs(ref s, ref node) => {
+                // TODO: Should we bind "s" for a context?
+                let node_type = self.type_of(node)?;
+                Ok(Ty::new_all(s.clone(), node_type))
+            },
             Kind::Loc(..) => {
                 Err(Error::TypeMismatch(format!("User can not input Loc node: {:?}.", node)))
             },
-            _ => panic!("")
+            _ => panic!(format!("{:?}", node))
         }
     }
 }
@@ -906,6 +912,41 @@ mod tests {
 
         let result = check_type_of_string(" if 1 then 10 else 11".to_string());
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_ty_abs() {
+        let result = check_type_of_string(" -> X { false } ".to_string());
+        assert_eq!(result, Ok(Ty::new_all("X".to_string(), Ty::new_bool())));
+
+        // id function
+        let result = check_type_of_string(" -> X { -> x: X { x } } ".to_string());
+        assert_eq!(result, Ok(
+            Ty::new_all(
+                "X".to_string(),
+                Ty::new_arrow(Ty::new_id("X".to_string()), Ty::new_id("X".to_string()))
+            )
+        ));
+
+        let result = check_type_of_string(" -> X { -> x: Y { x } } ".to_string());
+        assert_eq!(result, Ok(
+            Ty::new_all(
+                "X".to_string(),
+                Ty::new_arrow(Ty::new_id("Y".to_string()), Ty::new_id("Y".to_string()))
+            )
+        ));
+
+        // double function
+        let result = check_type_of_string(" -> X { -> f: X -> X { -> a: X { f.(f.(a)) } } } ".to_string());
+        assert_eq!(result, Ok(
+            Ty::new_all(
+                "X".to_string(),
+                Ty::new_arrow(
+                    Ty::new_arrow(Ty::new_id("X".to_string()), Ty::new_id("X".to_string())),
+                    Ty::new_arrow(Ty::new_id("X".to_string()), Ty::new_id("X".to_string()))
+                )
+            )
+        ));
     }
 
     #[test]
