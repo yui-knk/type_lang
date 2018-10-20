@@ -407,7 +407,7 @@ impl Parser {
             Kind::Keyword(Keyword::BOOL) => Ok(Ty::new_bool()),
             Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
             Kind::Keyword(Keyword::TOP) => Ok(Ty::new_top()),
-            Kind::TyIdentifier(s) => Ok(Ty::new_id(s)),
+            Kind::TyIdentifier(s) => Ok(Ty::new_id(s.clone(), s.clone())),
             _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
         }
     }
@@ -788,7 +788,7 @@ mod tests {
     fn test_parse_type_variable() {
         let mut parser = Parser::new("X".to_string());
         assert_eq!(parser.parse_type(), Ok(Ty {
-            kind: TyKind::Id("X".to_string())
+            kind: TyKind::Id("X".to_string(), "X".to_string())
         }));
     }
 

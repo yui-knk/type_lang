@@ -98,7 +98,7 @@ impl TypeChecker {
             (TyKind::Bool, TyKind::Bool) => true,
             (TyKind::Nat, TyKind::Nat) => true,
             (TyKind::Top, TyKind::Top) => true,
-            (TyKind::Id(ref s1), TyKind::Id(ref s2)) => s1 == s2,
+            (TyKind::Id(ref s1, _), TyKind::Id(ref s2, _)) => s1 == s2,
             (TyKind::Record(ref f1), TyKind::Record(ref f2)) => {
                 (f1.iter().len() == f2.iter().len()) &&
                 f1.iter().zip(f2.iter())
@@ -393,7 +393,7 @@ impl TypeChecker {
             // TyKind::Variant => ty1,
             TyKind::Unit => ty1,
             // TyKind::Ref => ty1,
-            TyKind::Id(s) => {
+            TyKind::Id(s, _) => {
                 if s == *id {
                     ty.clone()
                 } else {
@@ -964,7 +964,7 @@ mod tests {
         assert_eq!(result, Ok(
             Ty::new_all(
                 "X".to_string(),
-                Ty::new_arrow(Ty::new_id("X".to_string()), Ty::new_id("X".to_string()))
+                Ty::new_arrow(Ty::new_id("X".to_string(), "X".to_string()), Ty::new_id("X".to_string(), "X".to_string()))
             )
         ));
 
@@ -972,7 +972,7 @@ mod tests {
         assert_eq!(result, Ok(
             Ty::new_all(
                 "X".to_string(),
-                Ty::new_arrow(Ty::new_id("Y".to_string()), Ty::new_id("Y".to_string()))
+                Ty::new_arrow(Ty::new_id("Y".to_string(), "Y".to_string()), Ty::new_id("Y".to_string(), "Y".to_string()))
             )
         ));
 
@@ -982,8 +982,8 @@ mod tests {
             Ty::new_all(
                 "X".to_string(),
                 Ty::new_arrow(
-                    Ty::new_arrow(Ty::new_id("X".to_string()), Ty::new_id("X".to_string())),
-                    Ty::new_arrow(Ty::new_id("X".to_string()), Ty::new_id("X".to_string()))
+                    Ty::new_arrow(Ty::new_id("X".to_string(), "X".to_string()), Ty::new_id("X".to_string(), "X".to_string())),
+                    Ty::new_arrow(Ty::new_id("X".to_string(), "X".to_string()), Ty::new_id("X".to_string(), "X".to_string()))
                 )
             )
         ));
@@ -1008,7 +1008,7 @@ mod tests {
 
         let result = check_type_of_string(" -> X { -> x: Y { x } } [Nat]".to_string());
         assert_eq!(result, Ok(
-            Ty::new_arrow(Ty::new_id("Y".to_string()), Ty::new_id("Y".to_string()))
+            Ty::new_arrow(Ty::new_id("Y".to_string(), "Y".to_string()), Ty::new_id("Y".to_string(), "Y".to_string()))
         ));
 
         // double function
@@ -1040,8 +1040,8 @@ mod tests {
         let mut fields = Fields::new();
         // fields.insert("first".to_string(),  Box::new(Ty::new_nat()));
         // TODO: This is bug!
-        fields.insert("first".to_string(), Box::new(Ty::new_id("X".to_string())));
-        fields.insert("second".to_string(), Box::new(Ty::new_id("X".to_string())));
+        fields.insert("first".to_string(), Box::new(Ty::new_id("X".to_string(), "X".to_string())));
+        fields.insert("second".to_string(), Box::new(Ty::new_id("X".to_string(), "X".to_string())));
 
         assert_eq!(result, Ok(
             Ty::new_arrow(
@@ -1049,7 +1049,7 @@ mod tests {
                 Ty::new_all(
                     "X".to_string(),
                     Ty::new_arrow(
-                        Ty::new_id("X".to_string()),
+                        Ty::new_id("X".to_string(), "X".to_string()),
                         Ty::new_record(fields)
                     )
                 )

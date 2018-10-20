@@ -42,7 +42,7 @@ pub enum Kind {
     Variant(Fields),
     Unit, // the only value of Unit type is "unit"
     Ref(Box<Ty>), // `ref 1` has `Ref Nat` type
-    Id(String), // type variable. (Type variable: 'X')
+    Id(String, String), // auto generated type variable, original type variable. (Type variable: 'X')
     All(String, Box<Ty>), // type variable, type. (Universal type)
 }
 
@@ -81,8 +81,8 @@ impl Ty {
         Ty { kind: Ref(Box::new(ty)) }
     }
 
-    pub fn new_id(str: String) -> Ty {
-        Ty { kind: Id(str) }
+    pub fn new_id(gen_name: String, orig_name: String) -> Ty {
+        Ty { kind: Id(gen_name, orig_name) }
     }
 
     pub fn new_all(s: String, ty: Ty) -> Ty {
