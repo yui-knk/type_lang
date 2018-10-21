@@ -389,10 +389,26 @@ impl TypeChecker {
             TyKind::Bool => ty1,
             TyKind::Nat => ty1,
             TyKind::Top => ty1,
-            // TyKind::Record => ty1,
-            // TyKind::Variant => ty1,
+            TyKind::Record(fields) => {
+                let mut fields_type = Fields::new();
+
+                for (s, t1) in fields.iter() {
+                    let t2 = self.replace_types(id, ty, *t1.clone());
+                    fields_type.insert(s.clone(), Box::new(t2));
+                }
+                Ty::new_record(fields_type)
+            },
+            TyKind::Variant(fields) => {
+                let mut fields_type = Fields::new();
+
+                for (s, t1) in fields.iter() {
+                    let t2 = self.replace_types(id, ty, *t1.clone());
+                    fields_type.insert(s.clone(), Box::new(t2));
+                }
+                Ty::new_variant(fields_type)
+            },
             TyKind::Unit => ty1,
-            // TyKind::Ref => ty1,
+            TyKind::Ref(rty) => Ty::new_ref(self.replace_types(id, ty, *rty)),
             TyKind::Id(s, _) => {
                 if s == *id {
                     ty.clone()
@@ -401,15 +417,10 @@ impl TypeChecker {
                 }
             }
             TyKind::All(s, ty2) => {
-                if s == *id {
-                    // New same name type variable is introduced here
-                    // so stop to replace.
-                    ty1
-                } else {
-                    self.replace_types(id, ty, *ty2)
-                }
+                let ty3 = self.replace_types(id, ty, *ty2);
+                Ty::new_all(s, ty3)
             },
-            _ => panic!("replace_types does not support {:?}.", ty1)
+            // _ => panic!("replace_types does not support {:?}.", ty1)
         }
 
     }
@@ -957,21 +968,21 @@ mod tests {
     #[test]
     fn test_check_ty_abs() {
         let result = check_type_of_string(" -> X { false } ".to_string());
-        assert_eq!(result, Ok(Ty::new_all("X".to_string(), Ty::new_bool())));
+        assert_eq!(result, Ok(Ty::new_all("Var0".to_string(), Ty::new_bool())));
 
         // id function
         let result = check_type_of_string(" -> X { -> x: X { x } } ".to_string());
         assert_eq!(result, Ok(
             Ty::new_all(
-                "X".to_string(),
-                Ty::new_arrow(Ty::new_id("X".to_string(), "X".to_string()), Ty::new_id("X".to_string(), "X".to_string()))
+                "Var0".to_string(),
+                Ty::new_arrow(Ty::new_id("Var0".to_string(), "X".to_string()), Ty::new_id("Var0".to_string(), "X".to_string()))
             )
         ));
 
         let result = check_type_of_string(" -> X { -> x: Y { x } } ".to_string());
         assert_eq!(result, Ok(
             Ty::new_all(
-                "X".to_string(),
+                "Var0".to_string(),
                 Ty::new_arrow(Ty::new_id("Y".to_string(), "Y".to_string()), Ty::new_id("Y".to_string(), "Y".to_string()))
             )
         ));
@@ -980,10 +991,10 @@ mod tests {
         let result = check_type_of_string(" -> X { -> f: X -> X { -> a: X { f.(f.(a)) } } } ".to_string());
         assert_eq!(result, Ok(
             Ty::new_all(
-                "X".to_string(),
+                "Var0".to_string(),
                 Ty::new_arrow(
-                    Ty::new_arrow(Ty::new_id("X".to_string(), "X".to_string()), Ty::new_id("X".to_string(), "X".to_string())),
-                    Ty::new_arrow(Ty::new_id("X".to_string(), "X".to_string()), Ty::new_id("X".to_string(), "X".to_string()))
+                    Ty::new_arrow(Ty::new_id("Var0".to_string(), "X".to_string()), Ty::new_id("Var0".to_string(), "X".to_string())),
+                    Ty::new_arrow(Ty::new_id("Var0".to_string(), "X".to_string()), Ty::new_id("Var0".to_string(), "X".to_string()))
                 )
             )
         ));
@@ -1038,18 +1049,16 @@ mod tests {
 
         // Nat -> (All X. X -> {Nat, X})
         let mut fields = Fields::new();
-        // fields.insert("first".to_string(),  Box::new(Ty::new_nat()));
-        // TODO: This is bug!
-        fields.insert("first".to_string(), Box::new(Ty::new_id("X".to_string(), "X".to_string())));
-        fields.insert("second".to_string(), Box::new(Ty::new_id("X".to_string(), "X".to_string())));
+        fields.insert("first".to_string(),  Box::new(Ty::new_nat()));
+        fields.insert("second".to_string(), Box::new(Ty::new_id("Var1".to_string(), "X".to_string())));
 
         assert_eq!(result, Ok(
             Ty::new_arrow(
                 Ty::new_nat(),
                 Ty::new_all(
-                    "X".to_string(),
+                    "Var1".to_string(),
                     Ty::new_arrow(
-                        Ty::new_id("X".to_string(), "X".to_string()),
+                        Ty::new_id("Var1".to_string(), "X".to_string()),
                         Ty::new_record(fields)
                     )
                 )

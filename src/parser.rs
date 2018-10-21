@@ -2,13 +2,18 @@ use lexer;
 use node::{Node, Cases};
 use token::{Kind, Keyword, Token};
 use ty::{Ty, Fields};
+use name_generator::{NameGenerator};
 
 #[derive(Debug)]
 pub struct Parser {
     lexer: lexer::Lexer,
     // Buffer for once read tokens.
     // Use Vec as a stack.
-    buf: Vec<Token>
+    buf: Vec<Token>,
+    gen: NameGenerator,
+    // Pair of "original type variable name" and "generated tyep variable name".
+    // Use Vec as a stack.
+    type_name_aliases: Vec<(String, String)>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -24,12 +29,34 @@ impl Parser {
     pub fn new(source: String) -> Parser {
         Parser {
             lexer: lexer::Lexer::new(source),
-            buf: Vec::new()
+            buf: Vec::new(),
+            gen: NameGenerator::new(),
+            type_name_aliases: Vec::new(),
         }
     }
 
     pub fn parse(&mut self) -> Result<Node, Error> {
         self.parse_program()
+    }
+
+    fn push_type_name(&mut self, original: String, generated: String) {
+        self.type_name_aliases.push((original, generated));
+    }
+
+    fn pop_type_name(&mut self) {
+        if self.type_name_aliases.pop().is_none() {
+            eprintln!("empty pop_type_name is popped.");
+        }
+    }
+
+    fn resolve_type_variable_name(&self, variable: &str) -> Option<String> {
+        for (s1, s2) in self.type_name_aliases.iter().rev() {
+            if s1 == variable {
+                return Some(s2.clone());
+            }
+        }
+
+        None
     }
 
     fn parse_program(&mut self) -> Result<Node, Error> {
@@ -240,10 +267,14 @@ impl Parser {
             },
             Kind::TyIdentifier(var) => {
                 self.expect_keyword(Keyword::LBRACE)?;
+                let name = self.gen.get_name();
+                self.push_type_name(var, name.clone());
                 let node = self.parse_expression()?;
+                self.pop_type_name();
                 self.expect_keyword(Keyword::RBRACE)?;
 
-                Ok(Node::new_ty_abs(var, node))
+                // TODO: Should store original name
+                Ok(Node::new_ty_abs(name, node))
             },
             _ => Err(Error::UnexpectedToken("Identifier or TyIdentifier expected.".to_string(), token))
         }
@@ -407,7 +438,14 @@ impl Parser {
             Kind::Keyword(Keyword::BOOL) => Ok(Ty::new_bool()),
             Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
             Kind::Keyword(Keyword::TOP) => Ok(Ty::new_top()),
-            Kind::TyIdentifier(s) => Ok(Ty::new_id(s.clone(), s.clone())),
+            Kind::TyIdentifier(s) => {
+                let name = match self.resolve_type_variable_name(&s) {
+                    Some(s1) => s1,
+                    None => s.clone()
+                };
+
+                Ok(Ty::new_id(name, s))
+            },
             _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
         }
     }
@@ -731,7 +769,7 @@ mod tests {
 
         assert_eq!(parser.parse(), Ok(Node
             { kind: Kind::TyAbs(
-                "X".to_string(),
+                "Var0".to_string(),
                 Box::new(Node { kind: Kind::Bool(false) }),
             )}
         ));
@@ -743,7 +781,7 @@ mod tests {
 
         assert_eq!(parser.parse(), Ok(
             Node::new_ty_apply(
-                Node::new_ty_abs("X".to_string(), Node::new_bool(false)),
+                Node::new_ty_abs("Var0".to_string(), Node::new_bool(false)),
                 Ty::new_nat()
             )
         ));

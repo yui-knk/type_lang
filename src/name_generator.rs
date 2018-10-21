@@ -1,14 +1,14 @@
 #[derive(Debug, PartialEq)]
-struct NameGenerator {
+pub struct NameGenerator {
     count: usize
 }
 
 impl NameGenerator {
-    fn new() -> NameGenerator {
+    pub fn new() -> NameGenerator {
         NameGenerator { count: 0 }
     }
 
-    fn get_name(&mut self) -> String {
+    pub fn get_name(&mut self) -> String {
         let i = self.count;
         self.count += 1;
         format!("Var{}", i)
