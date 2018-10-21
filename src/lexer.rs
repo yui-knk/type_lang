@@ -59,9 +59,6 @@ impl Lexer {
             '<' => self.read_lt(),
             '>' => self.read_gt(),
             '!' => self.read_bang(),
-            'B' => self.read_bool(),
-            'N' => self.read_nnat(),
-            'T' => self.read_top(),
             '0'...'9' => self.read_nat(),
             'a'...'z' => self.read_identifier_or_keyword(),
             'A'...'Z' => self.read_type_identifier_or_keyword(),
@@ -240,31 +237,6 @@ impl Lexer {
     fn read_dot(&mut self) -> Result<Token, Error> {
         self.next_char();
         Ok(Token::new_dot())
-    }
-
-    fn read_bool(&mut self) -> Result<Token, Error> {
-        self.expect_next_char('o')?;
-        self.expect_next_char('o')?;
-        self.expect_next_char('l')?;
-        self.next_char();
-
-        Ok(Token::new_bool())
-    }
-
-    fn read_nnat(&mut self) -> Result<Token, Error> {
-        self.expect_next_char('a')?;
-        self.expect_next_char('t')?;
-        self.next_char();
-
-        Ok(Token::new_nnat())
-    }
-
-    fn read_top(&mut self) -> Result<Token, Error> {
-        self.expect_next_char('o')?;
-        self.expect_next_char('p')?;
-        self.next_char();
-
-        Ok(Token::new_top())
     }
 
     fn read_arrow(&mut self) -> Result<Token, Error> {
