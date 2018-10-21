@@ -148,7 +148,8 @@ impl Evaluator {
             Kind::Assign(..) => self.eval_assign(node),
             Kind::Loc(..) => Err(Error::UnexpectedNode("Loc node should not appear as user input.".to_string())),
             Kind::TyAbs(..) => self.eval_ty_abs(node),
-            _ => panic!(format!("{:?} is not supported by eval.", node))
+            Kind::TyApply(..) => self.eval_ty_apply(node),
+            // _ => panic!(format!("{:?} is not supported by eval.", node))
         }
     }
 
@@ -201,6 +202,26 @@ impl Evaluator {
     fn eval_ty_abs(&self, node: Node) -> Result<Node, Error> {
         // TyAbs is a value (P. 270).
         Ok(node)
+    }
+
+    fn eval_ty_apply(&mut self, node: Node) -> Result<Node, Error> {
+        match node.kind {
+            Kind::TyApply(node, _ty) => {
+                let node_val = self._eval(*node)?;
+
+                match node_val.kind {
+                    // "E-TappTabs" expects TyAbs node.
+                    Kind::TyAbs(_gen, _orig, body) => {
+                        // Type check is already done, so do not need to
+                        // push `_ty` to a stack. But keeping type variable environment is
+                        // useful for debugging.
+                        self._eval(*body)
+                    },
+                    _ => Err(Error::UnexpectedNode(format!("eval_ty_apply TyAbs is expected, {:?}", node_val)))
+                }
+            }
+            _ => Err(Error::UnexpectedNode(format!("eval_ty_apply {:?}", node)))
+        }
     }
 
     fn eval_deref(&mut self, node: Node) -> Result<Node, Error> {
@@ -927,6 +948,23 @@ mod tests {
                 ie.(9)
         ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
+    }
+
+    #[test]
+    fn test_eval_universal_type() {
+        // Universal type id function
+        let result = eval_string("
+            let id = -> X { -> x: X { x } } in
+              let a = (id  [Nat]).(1) in
+              let b = (id [Bool]).(false) in
+              {first=a, second=b}
+        ".to_string());
+
+        let mut fields = ValueFields::new();
+        fields.insert("first".to_string(), Box::new(Value::new_nat(1)));
+        fields.insert("second".to_string(), Box::new(Value::new_false()));
+
+        assert_eq!(result, Ok(Value::new_record(fields)));
     }
 
     #[test]
