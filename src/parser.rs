@@ -453,6 +453,7 @@ impl Parser {
     //
     //   atomic_type "->" arrow_type  // ArrowType
     // | "<" label ":" type (, label ":" type) ... ">" // VariantType
+    // | "{" label ":" type (, label ":" type) ... "}" // RecordType
     // | atomic_type
     fn parse_type(&mut self) -> Result<Ty, Error> {
         let mut token = self.next_token()?;
