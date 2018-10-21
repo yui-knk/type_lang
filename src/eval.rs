@@ -968,6 +968,27 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_universal_type_2() {
+        // Universal type double function
+        let result = eval_string("
+            let double = -> X {
+                -> f: X -> X {
+                    -> a: X { f.(f.(a)) }
+                }
+            } in
+              let a = (double [Nat]).(-> n : Nat { succ(succ(n)) }).(3) in
+              let b = (double [Bool]).(-> b : Bool { if b then false else true }).(false) in
+              {first=a, second=b}
+        ".to_string());
+
+        let mut fields = ValueFields::new();
+        fields.insert("first".to_string(), Box::new(Value::new_nat(1)));
+        fields.insert("second".to_string(), Box::new(Value::new_false()));
+
+        assert_eq!(result, Ok(Value::new_record(fields)));
+    }
+
+    #[test]
     fn test_eval_unit_derived_form() {
         let result = eval_string("unit; false".to_string());
         assert_eq!(result, Ok(Value::new_false()));
