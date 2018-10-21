@@ -9,10 +9,12 @@ struct Env {
     stack: Vec<(String, Node)>,
     // Collection of value node of references.
     store: Vec<Box<Node>>,
+    debug: bool,
 }
 
 pub struct Evaluator {
     env: Env,
+    debug: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -25,17 +27,19 @@ pub enum Error {
 }
 
 impl Env {
-    fn new() -> Env {
-        Env { stack: Vec::new(), store: Vec::new() }
+    fn new(debug: bool) -> Env {
+        Env { stack: Vec::new(), store: Vec::new(), debug: debug }
     }
 
     fn push(&mut self, variable: String, node: Node) {
+        self.debug(format!("({:?}, {:?}) is pushed.", variable, node));
         self.stack.push((variable, node));
     }
 
     fn pop(&mut self) {
-        if self.stack.pop().is_none() {
-            eprintln!("empty stack is popped.");
+        match self.stack.pop() {
+            Some(v) => { self.debug(format!("{:?} is popped.", v)); },
+            None => { eprintln!("empty stack is popped."); }
         }
     }
 
@@ -62,11 +66,22 @@ impl Env {
     fn get_from_store(&self, l: Location) -> &Node {
         &(*self.store[l])
     }
+
+    fn debug(&self, str: String) {
+        if !self.debug { return; }
+        eprintln!("{}", str);
+    }
 }
 
 impl Evaluator {
     pub fn new() -> Evaluator {
-        Evaluator { env: Env::new() }
+        let debug = true;
+        Evaluator { env: Env::new(debug), debug: debug }
+    }
+
+    fn debug(&self, str: String) {
+        if !self.debug { return; }
+        eprintln!("{}", str);
     }
 
     pub fn eval(&mut self, node: Node) -> Result<Value, Error> {
@@ -154,12 +169,15 @@ impl Evaluator {
     }
 
     fn eval_none_expression(&self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_none_expression"));
+
         Ok(node)
     }
 
     fn eval_let(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::Let(variable, bound, body) => {
+                self.debug(format!("eval_let : {}", variable));
                 let bound_value = self._eval(*bound)?;
                 self.env.push(variable, bound_value);
                 let body_value = self._eval(*body)?;
@@ -171,6 +189,8 @@ impl Evaluator {
     }
 
     fn eval_ref(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_ref"));
+
         match node.kind {
             Kind::Ref(node) => {
                 let val = self._eval(*node)?;
@@ -182,6 +202,8 @@ impl Evaluator {
     }
 
     fn eval_assign(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_assign"));
+
         match node.kind {
             Kind::Assign(left, right) => {
                 let lval = self._eval(*left)?;
@@ -200,13 +222,17 @@ impl Evaluator {
     }
 
     fn eval_ty_abs(&self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_ty_abs"));
+
         // TyAbs is a value (P. 270).
         Ok(node)
     }
 
     fn eval_ty_apply(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
-            Kind::TyApply(node, _ty) => {
+            Kind::TyApply(node, ty) => {
+                self.debug(format!("eval_ty_apply : {:?}", ty));
+
                 let node_val = self._eval(*node)?;
 
                 match node_val.kind {
@@ -215,7 +241,7 @@ impl Evaluator {
                         // Type check is already done, so do not need to
                         // push `_ty` to a stack. But keeping type variable environment is
                         // useful for debugging.
-                        self._eval(*body)
+                        Ok(*body)
                     },
                     _ => Err(Error::UnexpectedNode(format!("eval_ty_apply TyAbs is expected, {:?}", node_val)))
                 }
@@ -225,6 +251,8 @@ impl Evaluator {
     }
 
     fn eval_deref(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_deref"));
+
         match node.kind {
             Kind::Deref(re) => {
                 let re_val = self._eval(*re)?;
@@ -240,10 +268,12 @@ impl Evaluator {
     }
 
     fn eval_apply(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_apply"));
+
         match node.kind {
             Kind::Apply(rec, arg) => {
-                let arg_val = self._eval(*arg)?;
                 let rec_val = self._eval(*rec)?;
+                let arg_val = self._eval(*arg)?;
                 let (variable, body) = match rec_val.kind {
                     Kind::Lambda(v, b, _) => (v, b),
                     _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", rec_val.kind)))
@@ -261,6 +291,8 @@ impl Evaluator {
     fn eval_var_ref(&mut self, node: Node) -> Result<Node, Error> {
         match node.kind {
             Kind::VarRef(variable) => {
+                self.debug(format!("eval_var_ref : {}", variable));
+
                 match self.env.find_by_variable(&variable) {
                     Some(v) => Ok(v),
                     None => Err(Error::VariableNotFound(variable.clone()))
@@ -271,6 +303,8 @@ impl Evaluator {
     }
 
     fn eval_unit(&self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_unit"));
+
         match node.kind {
             Kind::Unit => Ok(node),
             _ => Err(Error::UnexpectedNode(format!("eval_unit {:?}", node)))
@@ -278,6 +312,8 @@ impl Evaluator {
     }
 
     fn eval_as(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_as"));
+
         match node.kind {
             Kind::As(expr, _) => self._eval(*expr),
             _ => Err(Error::UnexpectedNode(format!("eval_as {:?}", node)))
@@ -285,6 +321,8 @@ impl Evaluator {
     }
 
     fn eval_tag(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_tag"));
+
         match node.kind {
             Kind::Tag(s, node, ty) => {
                 let value = self._eval(*node)?;
@@ -404,6 +442,8 @@ impl Evaluator {
     }
 
     fn eval_fix(&mut self, fix_node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_fix"));
+
         match fix_node.clone().kind {
             Kind::Fix(node) => {
                 let node_value = self._eval(*node)?;
@@ -421,6 +461,8 @@ impl Evaluator {
     }
 
     fn eval_case(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_case"));
+
         match node.kind {
             Kind::Case(variant, cases) => {
                 let variant_value = self._eval(*variant)?;
@@ -447,6 +489,8 @@ impl Evaluator {
     }
 
     fn eval_bool(&self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_bool"));
+
         match node.kind {
             Kind::Bool(..)  => Ok(node),
             _ => Err(Error::UnexpectedNode(format!("eval_bool {:?}", node)))
@@ -454,6 +498,8 @@ impl Evaluator {
     }
 
     fn eval_zero(&self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_zero"));
+
         match node.kind {
             Kind::Zero => Ok(node),
             _ => Err(Error::UnexpectedNode(format!("eval_zero {:?}", node)))
@@ -461,6 +507,8 @@ impl Evaluator {
     }
 
     fn eval_succ(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_succ"));
+
         match node.kind {
             Kind::Succ(n) => {
                 let n_val = self._eval(*n)?;
@@ -476,6 +524,8 @@ impl Evaluator {
     }
 
     fn eval_pred(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_pred"));
+
         match node.kind {
             Kind::Pred(n) => {
                 let n_val = self._eval(*n)?;
@@ -495,10 +545,14 @@ impl Evaluator {
     }
 
     fn eval_lambda(&self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_lambda"));
+
         Ok(node)
     }
 
     fn eval_record(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_record"));
+
         let field_values = self._eval_record(node)?;
         Ok(Node::new_record_from_fields(field_values))
     }
@@ -520,6 +574,8 @@ impl Evaluator {
     }
 
     fn eval_projection(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_projection"));
+
         match node.kind {
             Kind::Projection(node, label) => {
                 let node_value = self._eval(*node)?;
@@ -541,6 +597,8 @@ impl Evaluator {
     }
 
     fn eval_iszero(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_iszero"));
+
         match node.kind {
             Kind::Iszero(n) => {
                 let error_message = format!("eval_iszero {:?}", n);
@@ -557,6 +615,8 @@ impl Evaluator {
     }
 
     fn eval_if(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_if"));
+
         match node.kind {
             Kind::If(cond, then_expr, else_expr) => {
                 let cond_val = self._eval(*cond)?;
@@ -583,7 +643,7 @@ mod tests_env {
 
     #[test]
     fn test_find_by_variable() {
-        let mut env = Env::new();
+        let mut env = Env::new(false);
         env.push("x".to_string(), Node::new_bool(false));
 
         assert_eq!(env.find_by_variable(&"y".to_string()), None);
