@@ -561,7 +561,7 @@ impl Parser {
         if token.has_keyword(&keyword) {
             Ok(())
         } else {
-            Err(Error::UnexpectedToken(format!("expect_keyword call: {:?}", keyword), token))
+            Err(Error::UnexpectedToken(format!("expect_keyword call: {:?} is expected.", keyword), token))
         }
     }
 
