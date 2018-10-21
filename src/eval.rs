@@ -147,7 +147,7 @@ impl Evaluator {
             Kind::Deref(..) => self.eval_deref(node),
             Kind::Assign(..) => self.eval_assign(node),
             Kind::Loc(..) => Err(Error::UnexpectedNode("Loc node should not appear as user input.".to_string())),
-            _ => panic!("")
+            _ => panic!(format!("{:?} is not supported by eval.", node))
         }
     }
 
