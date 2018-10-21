@@ -279,7 +279,7 @@ impl Evaluator {
                     _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", rec_val.kind)))
                 };
 
-                let body2 = self.replace_variable_with_fix_node(&variable, &arg_val, *body);
+                let body2 = self.replace_variable_with_node(&variable, &arg_val, *body);
                 let rec_val = self._eval(body2)?;
                 Ok(rec_val)
             },
@@ -332,7 +332,7 @@ impl Evaluator {
 
     }
 
-    fn replace_variable_with_fix_node(&self, variable: &str, fix_node: &Node, node: Node) -> Node {
+    fn replace_variable_with_node(&self, variable: &str, arg_node: &Node, node: Node) -> Node {
         match node.kind {
               Kind::NoneExpression
             | Kind::Bool(..)
@@ -342,17 +342,17 @@ impl Evaluator {
             },
             Kind::Succ(arg) => {
                 Node::new_succ(
-                    self.replace_variable_with_fix_node(variable, fix_node, *arg)
+                    self.replace_variable_with_node(variable, arg_node, *arg)
                 )
             },
             Kind::Pred(arg) => {
                 Node::new_pred(
-                    self.replace_variable_with_fix_node(variable, fix_node, *arg)
+                    self.replace_variable_with_node(variable, arg_node, *arg)
                 )
             },
             Kind::Apply(rec, arg) => {
-                let rec2 = self.replace_variable_with_fix_node(variable, fix_node, *rec);
-                let arg2 = self.replace_variable_with_fix_node(variable, fix_node, *arg);
+                let rec2 = self.replace_variable_with_node(variable, arg_node, *rec);
+                let arg2 = self.replace_variable_with_node(variable, arg_node, *arg);
                 Node::new_apply(rec2, arg2)
             },
             Kind::Let(s, bound, body) => {
@@ -360,8 +360,8 @@ impl Evaluator {
                     // variable is newly bound, so need not to replace.
                     Node::new_let(s, *bound, *body)
                 } else {
-                    let bound2 = self.replace_variable_with_fix_node(variable, fix_node, *bound);
-                    let body2 = self.replace_variable_with_fix_node(variable, fix_node, *body);
+                    let bound2 = self.replace_variable_with_node(variable, arg_node, *bound);
+                    let body2 = self.replace_variable_with_node(variable, arg_node, *body);
                     Node::new_let(s, bound2, body2)
                 }
             },
@@ -370,25 +370,25 @@ impl Evaluator {
                     // variable is newly bound, so need not to replace.
                     Node::new_lambda(s, *body, *ty)
                 } else {
-                    let body2 = self.replace_variable_with_fix_node(variable, fix_node, *body);
+                    let body2 = self.replace_variable_with_node(variable, arg_node, *body);
                     Node::new_lambda(s, body2, *ty)
                 }
             },
             Kind::VarRef(ref s) => {
                 if s == variable {
-                    fix_node.clone()
+                    arg_node.clone()
                 } else {
                     node.clone()
                 }
             },
             Kind::If(cond, then_expr, else_expr) => {
-                let c = self.replace_variable_with_fix_node(variable, fix_node, *cond);
-                let t = self.replace_variable_with_fix_node(variable, fix_node, *then_expr);
-                let e = self.replace_variable_with_fix_node(variable, fix_node, *else_expr);
+                let c = self.replace_variable_with_node(variable, arg_node, *cond);
+                let t = self.replace_variable_with_node(variable, arg_node, *then_expr);
+                let e = self.replace_variable_with_node(variable, arg_node, *else_expr);
                 Node::new_if(c, t, e)
             },
             Kind::Iszero(op) => {
-                let op2 = self.replace_variable_with_fix_node(variable, fix_node, *op);
+                let op2 = self.replace_variable_with_node(variable, arg_node, *op);
                 Node::new_iszero(op2)
             },
             Kind::Record(fields) => {
@@ -397,23 +397,23 @@ impl Evaluator {
                 for (s, n) in fields.iter() {
                     fields2.insert(
                         s.to_string(),
-                        Box::new(self.replace_variable_with_fix_node(variable, fix_node, *n.clone()))
+                        Box::new(self.replace_variable_with_node(variable, arg_node, *n.clone()))
                     );
                 }
 
                 Node::new_record_from_fields(fields2)
             },
             Kind::Projection(record, s) => {
-                let record2 = self.replace_variable_with_fix_node(variable, fix_node, *record);
+                let record2 = self.replace_variable_with_node(variable, arg_node, *record);
                 Node::new_projection(record2, s)
             },
             Kind::Tag(s, value, ty) => {
-                let value2 = self.replace_variable_with_fix_node(variable, fix_node, *value);
+                let value2 = self.replace_variable_with_node(variable, arg_node, *value);
                 Node::new_tag(s, value2, *ty)
             },
             Kind::Case(variant, cases) => {
                 let mut cases2 = Cases::new();
-                let variant2 = self.replace_variable_with_fix_node(variable, fix_node, *variant);
+                let variant2 = self.replace_variable_with_node(variable, arg_node, *variant);
                 for (tag, (var, body)) in cases.iter() {
                     if *var == variable {
                         // variable is newly bound, so need not to replace.
@@ -421,7 +421,7 @@ impl Evaluator {
                     } else {
                         cases2.insert(
                             tag.to_string(), var.to_string(),
-                            self.replace_variable_with_fix_node(variable, fix_node, *body.clone())
+                            self.replace_variable_with_node(variable, arg_node, *body.clone())
                         );
                     }
                 }
@@ -429,11 +429,11 @@ impl Evaluator {
                 Node::new_case(variant2, cases2)
             },
             Kind::As(expr, ty) => {
-                let expr2 = self.replace_variable_with_fix_node(variable, fix_node, *expr);
+                let expr2 = self.replace_variable_with_node(variable, arg_node, *expr);
                 Node::new_as(expr2, *ty)
             },
             Kind::Fix(generator) => {
-                let generator2 = self.replace_variable_with_fix_node(variable, fix_node, *generator);
+                let generator2 = self.replace_variable_with_node(variable, arg_node, *generator);
                 Node::new_fix(generator2)
             },
             _ => panic!("")
@@ -451,7 +451,7 @@ impl Evaluator {
                     _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", node_value.kind)))
                 };
 
-                let replaced = self.replace_variable_with_fix_node(&variable, &fix_node, *body);
+                let replaced = self.replace_variable_with_node(&variable, &fix_node, *body);
                 let replaced_val = self._eval(replaced)?;
                 Ok(replaced_val)
             },
