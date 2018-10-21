@@ -28,6 +28,7 @@ pub enum Keyword {
     BOOL,     // 'Bool' (type)
     NAT,      // 'Nat' (type)
     TOP,      // 'Top' (type)
+    ALL,      // 'All' (type)
     IF,
     THEN,
     ELSE,
@@ -240,6 +241,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "fix" => Some(Keyword::FIX),
         "letrec" => Some(Keyword::LETREC),
         "ref" => Some(Keyword::REF),
+        "All" => Some(Keyword::ALL),
         _ => None
     }
 }
