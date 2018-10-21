@@ -1,7 +1,7 @@
 # Current Status
 
 This language is based on TAPL (Types and Programming Languages) textbook.
-Current implementation has almost same features as "fullsub", which is the theme of chapter 15.
+Current implementation has almost same features as "fullpoly", which is the theme of chapter 23.
 
 These features are implemented:
 
@@ -17,6 +17,8 @@ These features are implemented:
 - Ref.        "ref true".
 - Deref.      "! ref true".
 - Assign.     "let x = ref false in x := true".
+- TyAbs.      "-> X { false }".
+- TyApply.    "-> X { false } [Nat]".
 
 These types are implemented:
 
@@ -28,6 +30,7 @@ These types are implemented:
 - Unit
 - Ref
 - Top
+- All (Universal type)
 
 These features are not implemented:
 
@@ -36,6 +39,7 @@ These features are not implemented:
 TODO:
 
 - Ref type syntax
+- All type syntax
 - Type alias
 
 # How to implement fix operator
