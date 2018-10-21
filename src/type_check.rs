@@ -362,15 +362,15 @@ impl TypeChecker {
                     _ => Err(Error::TypeMismatch(format!("{:?} is not ref type.", left_type.kind)))
                 }
             },
-            Kind::TyAbs(ref s, _, ref node) => {
+            Kind::TyAbs(ref s, ref org, ref node) => {
                 let node_type = self.type_of(node)?;
-                Ok(Ty::new_all(s.clone(), node_type))
+                Ok(Ty::new_all(s.clone(), org.clone(), node_type))
             },
             Kind::TyApply(ref node, ref ty) => {
                 let node_type = self.type_of(node)?;
 
                 match node_type.kind {
-                    TyKind::All(ref s, ref ty2) => Ok(self.replace_types(s, ty, *ty2.clone())),
+                    TyKind::All(ref s, _, ref ty2) => Ok(self.replace_types(s, ty, *ty2.clone())),
                     _ => Err(Error::TypeMismatch(format!("{:?} is not universal type.", node_type.kind)))
                 }
             },
@@ -415,9 +415,9 @@ impl TypeChecker {
                     ty1
                 }
             }
-            TyKind::All(s, ty2) => {
+            TyKind::All(s, org, ty2) => {
                 let ty3 = self.replace_types(id, ty, *ty2);
-                Ty::new_all(s, ty3)
+                Ty::new_all(s, org, ty3)
             },
             // _ => panic!("replace_types does not support {:?}.", ty1)
         }
@@ -967,13 +967,14 @@ mod tests {
     #[test]
     fn test_check_ty_abs() {
         let result = check_type_of_string(" -> X { false } ".to_string());
-        assert_eq!(result, Ok(Ty::new_all("Var0".to_string(), Ty::new_bool())));
+        assert_eq!(result, Ok(Ty::new_all("Var0".to_string(), "X".to_string(), Ty::new_bool())));
 
         // id function
         let result = check_type_of_string(" -> X { -> x: X { x } } ".to_string());
         assert_eq!(result, Ok(
             Ty::new_all(
                 "Var0".to_string(),
+                "X".to_string(),
                 Ty::new_arrow(Ty::new_id("Var0".to_string(), "X".to_string()), Ty::new_id("Var0".to_string(), "X".to_string()))
             )
         ));
@@ -982,6 +983,7 @@ mod tests {
         assert_eq!(result, Ok(
             Ty::new_all(
                 "Var0".to_string(),
+                "X".to_string(),
                 Ty::new_arrow(Ty::new_id("Y".to_string(), "Y".to_string()), Ty::new_id("Y".to_string(), "Y".to_string()))
             )
         ));
@@ -991,6 +993,7 @@ mod tests {
         assert_eq!(result, Ok(
             Ty::new_all(
                 "Var0".to_string(),
+                "X".to_string(),
                 Ty::new_arrow(
                     Ty::new_arrow(Ty::new_id("Var0".to_string(), "X".to_string()), Ty::new_id("Var0".to_string(), "X".to_string())),
                     Ty::new_arrow(Ty::new_id("Var0".to_string(), "X".to_string()), Ty::new_id("Var0".to_string(), "X".to_string()))
@@ -1056,6 +1059,7 @@ mod tests {
                 Ty::new_nat(),
                 Ty::new_all(
                     "Var1".to_string(),
+                    "X".to_string(),
                     Ty::new_arrow(
                         Ty::new_id("Var1".to_string(), "X".to_string()),
                         Ty::new_record(fields)
