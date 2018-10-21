@@ -39,7 +39,6 @@ These features are not implemented:
 TODO:
 
 - Ref type syntax
-- All type syntax
 - Type alias
 
 # How to implement fix operator
