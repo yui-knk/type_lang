@@ -454,6 +454,7 @@ impl Parser {
     //   atomic_type "->" arrow_type  // ArrowType
     // | "<" label ":" type (, label ":" type) ... ">" // VariantType
     // | "{" label ":" type (, label ":" type) ... "}" // RecordType
+    // | All type_variable "." type // UniversalType
     // | atomic_type
     fn parse_type(&mut self) -> Result<Ty, Error> {
         let mut token = self.next_token()?;
@@ -496,6 +497,25 @@ impl Parser {
                 }
 
                 Ty::new_record(fields)
+            },
+            // Case: All type_variable "." type // UniversalType
+            Kind::Keyword(Keyword::ALL) => {
+                let token = self.next_token()?;
+
+                match token.kind {
+                    Kind::TyIdentifier(var) => {
+                        self.expect_keyword(Keyword::DOT)?;
+                        let name = self.gen.get_name();
+                        self.push_type_name(var.clone(), name.clone());
+                        let ty = self.parse_type()?;
+                        self.pop_type_name();
+
+                        Ty::new_all(name, var, ty)
+                    },
+                    _ => {
+                        return Err(Error::UnexpectedToken("TyIdentifier expected.".to_string(), token));
+                    }
+                }
             },
             _ => {
                 self.unget_token(token);
@@ -821,6 +841,65 @@ mod tests {
         assert_eq!(parser.parse_type(), Ok(Ty {
             kind: TyKind::Top
         }));
+    }
+
+    #[test]
+    fn test_parse_universal_type() {
+        let mut parser = Parser::new("All X. X -> X".to_string());
+        assert_eq!(parser.parse_type(), Ok(
+            Ty::new_all(
+                "Var0".to_string(),
+                "X".to_string(),
+                Ty::new_arrow(
+                    Ty::new_id("Var0".to_string(), "X".to_string()),
+                    Ty::new_id("Var0".to_string(), "X".to_string()),
+                )
+            )
+        ));
+
+        let mut parser = Parser::new("All X. X -> Y".to_string());
+        assert_eq!(parser.parse_type(), Ok(
+            Ty::new_all(
+                "Var0".to_string(),
+                "X".to_string(),
+                Ty::new_arrow(
+                    Ty::new_id("Var0".to_string(), "X".to_string()),
+                    Ty::new_id("Y".to_string(), "Y".to_string()),
+                )
+            )
+        ));
+
+        let mut parser = Parser::new("All X. All Y. X -> Y".to_string());
+        assert_eq!(parser.parse_type(), Ok(
+            Ty::new_all(
+                "Var0".to_string(),
+                "X".to_string(),
+                Ty::new_all(
+                    "Var1".to_string(),
+                    "Y".to_string(),
+                    Ty::new_arrow(
+                        Ty::new_id("Var0".to_string(), "X".to_string()),
+                        Ty::new_id("Var1".to_string(), "Y".to_string()),
+                    )
+                )
+            )
+        ));
+
+        let mut parser = Parser::new("All X. All X. X -> X".to_string());
+        assert_eq!(parser.parse_type(), Ok(
+            Ty::new_all(
+                "Var0".to_string(),
+                "X".to_string(),
+                Ty::new_all(
+                    "Var1".to_string(),
+                    "X".to_string(),
+                    Ty::new_arrow(
+                        Ty::new_id("Var1".to_string(), "X".to_string()),
+                        Ty::new_id("Var1".to_string(), "X".to_string()),
+                    )
+                )
+            )
+        ));
     }
 
     #[test]
