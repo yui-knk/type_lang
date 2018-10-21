@@ -103,7 +103,7 @@ impl Parser {
 
         let mut node = if token.has_keyword(&Keyword::LPAREN) {
             // "(" expr ")"
-            let expr = self._parse_expression()?;
+            let expr = self.parse_expression()?;
             self.expect_keyword(Keyword::RPAREN)?;
             expr
         } else {
@@ -1075,5 +1075,20 @@ mod tests {
         assert_eq!(parser.parse(), Ok(Node{
             kind: Kind::NoneExpression
         }));
+    }
+
+    #[test]
+    fn test_parse_parens() {
+        let mut parser = Parser::new("(id [Nat]).(1)".to_string());
+
+        assert_eq!(parser.parse(), Ok(
+            Node::new_apply(
+                Node::new_ty_apply(
+                    Node::new_var_ref("id".to_string()),
+                    Ty::new_nat()
+                ),
+                Node::new_nat(1)
+            )
+        ));
     }
 }
