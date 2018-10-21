@@ -147,6 +147,7 @@ impl Evaluator {
             Kind::Deref(..) => self.eval_deref(node),
             Kind::Assign(..) => self.eval_assign(node),
             Kind::Loc(..) => Err(Error::UnexpectedNode("Loc node should not appear as user input.".to_string())),
+            Kind::TyAbs(..) => self.eval_ty_abs(node),
             _ => panic!(format!("{:?} is not supported by eval.", node))
         }
     }
@@ -195,6 +196,11 @@ impl Evaluator {
             },
             _ => Err(Error::UnexpectedNode(format!("eval_assign {:?}", node)))
         }
+    }
+
+    fn eval_ty_abs(&self, node: Node) -> Result<Node, Error> {
+        // TyAbs is a value (P. 270).
+        Ok(node)
     }
 
     fn eval_deref(&mut self, node: Node) -> Result<Node, Error> {
