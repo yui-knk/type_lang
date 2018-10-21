@@ -1067,6 +1067,31 @@ mod tests {
                 )
             )
         ));
+
+        let result = check_type_of_string("
+            -> X {
+                -> a: X {
+                    -> X {
+                        -> b: X { {first=a, second=b} }
+                    } [Bool]
+                }
+            } [Nat]
+        ".to_string());
+
+        // Nat -> (All X. X -> {Nat, X})
+        let mut fields = Fields::new();
+        fields.insert("first".to_string(),  Box::new(Ty::new_nat()));
+        fields.insert("second".to_string(), Box::new(Ty::new_bool()));
+
+        assert_eq!(result, Ok(
+            Ty::new_arrow(
+                Ty::new_nat(),
+                Ty::new_arrow(
+                    Ty::new_bool(),
+                    Ty::new_record(fields)
+                )
+            )
+        ));
     }
 
     #[test]
