@@ -75,7 +75,7 @@ impl Env {
 
 impl Evaluator {
     pub fn new() -> Evaluator {
-        let debug = true;
+        let debug = false;
         Evaluator { env: Env::new(debug), debug: debug }
     }
 
@@ -279,9 +279,8 @@ impl Evaluator {
                     _ => return Err(Error::NotApplyable(format!("{:?} is not applyable", rec_val.kind)))
                 };
 
-                self.env.push(variable, arg_val);
-                let rec_val = self._eval(*body)?;
-                self.env.pop();
+                let body2 = self.replace_variable_with_fix_node(&variable, &arg_val, *body);
+                let rec_val = self._eval(body2)?;
                 Ok(rec_val)
             },
             _ => Err(Error::UnexpectedNode(format!("eval_ref {:?}", node)))
@@ -1042,7 +1041,7 @@ mod tests {
         ".to_string());
 
         let mut fields = ValueFields::new();
-        fields.insert("first".to_string(), Box::new(Value::new_nat(1)));
+        fields.insert("first".to_string(), Box::new(Value::new_nat(7)));
         fields.insert("second".to_string(), Box::new(Value::new_false()));
 
         assert_eq!(result, Ok(Value::new_record(fields)));
