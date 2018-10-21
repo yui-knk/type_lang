@@ -53,6 +53,7 @@ pub enum Keyword {
     BANG,      // '!'
     COLONEQ,   // ':='
     REF,       // 'ref'
+    STAR,      // '*'
 }
 
 use self::Kind::*;
@@ -108,6 +109,10 @@ impl Token {
 
     pub fn new_colon() -> Token {
         Token { kind: Keyword(Keyword::COLON) }
+    }
+
+    pub fn new_star() -> Token {
+        Token { kind: Keyword(Keyword::STAR) }
     }
 
     pub fn new_unit() -> Token {

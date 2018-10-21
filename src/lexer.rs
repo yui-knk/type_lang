@@ -59,6 +59,7 @@ impl Lexer {
             '<' => self.read_lt(),
             '>' => self.read_gt(),
             '!' => self.read_bang(),
+            '*' => self.read_star(),
             '0'...'9' => self.read_nat(),
             'a'...'z' => self.read_identifier_or_keyword(),
             'A'...'Z' => self.read_type_identifier_or_keyword(),
@@ -170,6 +171,11 @@ impl Lexer {
     fn read_bang(&mut self) -> Result<Token, Error> {
         self.next_char();
         Ok(Token::new_bang())
+    }
+
+    fn read_star(&mut self) -> Result<Token, Error> {
+        self.next_char();
+        Ok(Token::new_star())
     }
 
     fn read_lbrace(&mut self) -> Result<Token, Error> {
@@ -515,6 +521,14 @@ mod tests {
         let mut lexer = Lexer::new(" ! ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::BANG)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_start() {
+        let mut lexer = Lexer::new(" * ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::STAR)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
