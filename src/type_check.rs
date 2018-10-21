@@ -362,8 +362,7 @@ impl TypeChecker {
                     _ => Err(Error::TypeMismatch(format!("{:?} is not ref type.", left_type.kind)))
                 }
             },
-            Kind::TyAbs(ref s, ref node) => {
-                // TODO: Should we bind "s" for a context?
+            Kind::TyAbs(ref s, _, ref node) => {
                 let node_type = self.type_of(node)?;
                 Ok(Ty::new_all(s.clone(), node_type))
             },

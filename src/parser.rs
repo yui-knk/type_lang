@@ -268,13 +268,12 @@ impl Parser {
             Kind::TyIdentifier(var) => {
                 self.expect_keyword(Keyword::LBRACE)?;
                 let name = self.gen.get_name();
-                self.push_type_name(var, name.clone());
+                self.push_type_name(var.clone(), name.clone());
                 let node = self.parse_expression()?;
                 self.pop_type_name();
                 self.expect_keyword(Keyword::RBRACE)?;
 
-                // TODO: Should store original name
-                Ok(Node::new_ty_abs(name, node))
+                Ok(Node::new_ty_abs(name, var, node))
             },
             _ => Err(Error::UnexpectedToken("Identifier or TyIdentifier expected.".to_string(), token))
         }
@@ -770,6 +769,7 @@ mod tests {
         assert_eq!(parser.parse(), Ok(Node
             { kind: Kind::TyAbs(
                 "Var0".to_string(),
+                "X".to_string(),
                 Box::new(Node { kind: Kind::Bool(false) }),
             )}
         ));
@@ -781,7 +781,7 @@ mod tests {
 
         assert_eq!(parser.parse(), Ok(
             Node::new_ty_apply(
-                Node::new_ty_abs("Var0".to_string(), Node::new_bool(false)),
+                Node::new_ty_abs("Var0".to_string(), "X".to_string(), Node::new_bool(false)),
                 Ty::new_nat()
             )
         ));

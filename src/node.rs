@@ -89,7 +89,7 @@ pub enum Kind {
     Deref(Box<Node>), // reference value
     Assign(Box<Node>, Box<Node>), // reference, value
     Loc(Location), // location index
-    TyAbs(String, Box<Node>), // type variable, body. (Type abstruction)
+    TyAbs(String, String, Box<Node>), // auto generated type variable, original type variable, body. (Type abstruction)
     TyApply(Box<Node>, Box<Ty>), // (Type apply)
 }
 
@@ -179,8 +179,8 @@ impl Node {
         Node { kind: Loc(loc) }
     }
 
-    pub fn new_ty_abs(s: String, node: Node) -> Node {
-        Node { kind: TyAbs(s, Box::new(node)) }
+    pub fn new_ty_abs(gen_name: String, orig_name: String, node: Node) -> Node {
+        Node { kind: TyAbs(gen_name, orig_name, Box::new(node)) }
     }
 
     pub fn new_ty_apply(node: Node, ty: Ty) -> Node {
