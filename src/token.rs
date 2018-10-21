@@ -29,6 +29,7 @@ pub enum Keyword {
     NAT,      // 'Nat' (type)
     TOP,      // 'Top' (type)
     ALL,      // 'All' (type)
+    SOME,     // 'SOME' (type)
     IF,
     THEN,
     ELSE,
@@ -250,6 +251,7 @@ pub fn convert_str_to_keyword(s: &str) -> Option<Keyword> {
         "Nat" => Some(Keyword::NAT),
         "Top" => Some(Keyword::TOP),
         "All" => Some(Keyword::ALL),
+        "Some" => Some(Keyword::SOME),
         _ => None
     }
 }
