@@ -89,6 +89,7 @@ pub enum Kind {
     Deref(Box<Node>), // reference value
     Assign(Box<Node>, Box<Node>), // reference, value
     Loc(Location), // location index
+    Pack(Box<Ty>, Box<Node>, Box<Ty>), // hidden representation type, expr, type
     TyAbs(String, String, Box<Node>), // auto generated type variable, original type variable, body. (Type abstruction)
     TyApply(Box<Node>, Box<Ty>), // (Type apply)
 }
@@ -179,6 +180,10 @@ impl Node {
         Node { kind: Loc(loc) }
     }
 
+    pub fn new_pack(h_type: Ty, node: Node, ty: Ty) -> Node {
+        Node { kind: Pack(Box::new(h_type), Box::new(node), Box::new(ty)) }
+    }
+
     pub fn new_ty_abs(gen_name: String, orig_name: String, node: Node) -> Node {
         Node { kind: TyAbs(gen_name, orig_name, Box::new(node)) }
     }
@@ -233,6 +238,7 @@ impl Node {
             Record(ref fields) => fields.iter().all(|(_, node)| node.is_value()),
             Unit => true,
             Lambda(..) => true,
+            Pack(_ , ref expr, _) => expr.is_value(),
             TyAbs(..) => true,
             Loc(..) => true,
             _ => false

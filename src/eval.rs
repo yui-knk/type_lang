@@ -164,7 +164,7 @@ impl Evaluator {
             Kind::Loc(..) => Err(Error::UnexpectedNode("Loc node should not appear as user input.".to_string())),
             Kind::TyAbs(..) => self.eval_ty_abs(node),
             Kind::TyApply(..) => self.eval_ty_apply(node),
-            // _ => panic!(format!("{:?} is not supported by eval.", node))
+            _ => panic!(format!("{:?} is not supported by eval.", node))
         }
     }
 

@@ -199,7 +199,7 @@ impl Parser {
             Kind::Keyword(Keyword::ISZERO) => self.parse_iszero(),
             Kind::Keyword(Keyword::SUCC) => self.parse_succ(),
             Kind::Keyword(Keyword::PRED) => self.parse_pred(),
-            Kind::Keyword(Keyword::LBRACE) => self.parse_record(),
+            Kind::Keyword(Keyword::LBRACE) => self.parse_record_or_pack(),
             Kind::Keyword(Keyword::UNIT) => self.parse_unit(),
             Kind::Keyword(Keyword::LET) => self.parse_let(),
             Kind::Keyword(Keyword::LT) => self.parse_tag(),
@@ -291,11 +291,30 @@ impl Parser {
     }
 
     //   "{" fields "}"
-    fn parse_record(&mut self) -> Result<Node, Error> {
-        let fields = self.parse_fields()?;
-        self.expect_keyword(Keyword::RBRACE)?;
-        let record = Node::new_record(fields);
-        Ok(record)
+    // | "{" "*" type "," expr "}" "as" type
+    fn parse_record_or_pack(&mut self) -> Result<Node, Error> {
+        let token = self.next_token()?;
+
+        match token.kind {
+            Kind::Keyword(Keyword::STAR) => {
+                // pack
+                let ty1 = self.parse_type()?;
+                self.expect_keyword(Keyword::COMMA)?;
+                let expr = self.parse_expression()?;
+                self.expect_keyword(Keyword::RBRACE)?;
+                self.expect_keyword(Keyword::AS)?;
+                let ty2 = self.parse_type()?;
+                Ok(Node::new_pack(ty1, expr, ty2))
+            },
+            _ => {
+                // record
+                self.unget_token(token);
+                let fields = self.parse_fields()?;
+                self.expect_keyword(Keyword::RBRACE)?;
+                let record = Node::new_record(fields);
+                Ok(record)
+            }
+        }
     }
 
     // field ("," field) ...
@@ -781,6 +800,20 @@ mod tests {
                 Box::new(Node { kind: Kind::Bool(false) })
             )
         }));
+    }
+
+    #[test]
+    fn test_parse_pack() {
+        // 
+        let mut parser = Parser::new(" {*Nat, 10} as Nat".to_string());
+
+        assert_eq!(parser.parse(), Ok(
+            Node::new_pack(
+                Ty::new_nat(),
+                Node::new_nat(10),
+                Ty::new_nat(),
+            )
+        ));
     }
 
     #[test]
