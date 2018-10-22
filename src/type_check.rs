@@ -374,10 +374,32 @@ impl TypeChecker {
                     _ => Err(Error::TypeMismatch(format!("{:?} is not universal type.", node_type.kind)))
                 }
             },
+            Kind::Pack(ref ty1, ref node, ref ty2) => {
+                // In case `{*Nat, {a=0, f=λx:Nat. succ(x)}} as {∃X, {a:X, f:X→Nat}}` is given,
+                //
+                // (1) Check `{∃X, {a:X, f:X→Nat}}` is an existential type.
+                // (2) Check the type of `{a=0, f=λx:Nat. succ(x)}` is same to
+                //     `{∃X, {a:X, f:X→Nat}}` with `X` replaced by `Nat`.
+                //
+                // and the returned type is `{∃X, {a:X, f:X→Nat}}`.
+                match ty2.kind.clone() {
+                    TyKind::Some(ref gen, ref _orig, ref ty3) => {
+                        let node_type = self.type_of(node)?;
+                        let ty4 = self.replace_types(gen, ty1, *ty3.clone());
+                        // TODO: Should subtype_eq?
+                        if !self.type_eq(&node_type, &ty4) {
+                            return Err(Error::TypeMismatch(format!(
+                                "Type mismatch. node: {:?}, some: {:?}", node_type.kind, ty4.kind)));
+                        }
+                        Ok(*ty2.clone())
+                    },
+                    _ => Err(Error::TypeMismatch(format!("{:?} is not existential type.", ty2.kind)))
+                }
+            },
             Kind::Loc(..) => {
                 Err(Error::TypeMismatch(format!("User can not input Loc node: {:?}.", node)))
             },
-            _ => panic!(format!("{:?}", node))
+            // _ => panic!(format!("{:?}", node))
         }
     }
 
@@ -416,10 +438,18 @@ impl TypeChecker {
                 }
             }
             TyKind::All(s, org, ty2) => {
+                // Type variable is fresh, so do not need to check
+                // the equivalence of `id` and `s`.
                 let ty3 = self.replace_types(id, ty, *ty2);
                 Ty::new_all(s, org, ty3)
             },
-            _ => panic!("replace_types does not support {:?}.", ty1)
+            TyKind::Some(s, org, ty2) => {
+                // Type variable is fresh, so do not need to check
+                // the equivalence of `id` and `s`.
+                let ty3 = self.replace_types(id, ty, *ty2);
+                Ty::new_some(s, org, ty3)
+            },
+            // _ => panic!("replace_types does not support {:?}.", ty1)
         }
 
     }
@@ -1090,6 +1120,45 @@ mod tests {
                     Ty::new_bool(),
                     Ty::new_record(fields)
                 )
+            )
+        ));
+    }
+
+    #[test]
+    fn test_check_ty_pack() {
+        let result = check_type_of_string("
+            {
+                *Nat,
+                {
+                    a=0,
+                    f=-> x : Nat {
+                        succ(x)
+                    }
+                }
+            } as {
+                Some X,
+                {
+                    a:X,
+                    f: X -> Nat
+                }
+
+            }
+            ".to_string());
+
+        let mut fields = Fields::new();
+        fields.insert("a".to_string(), Box::new(Ty::new_id("Var0".to_string(), "X".to_string())));
+        fields.insert("f".to_string(), Box::new(
+            Ty::new_arrow(
+                Ty::new_id("Var0".to_string(), "X".to_string()),
+                Ty::new_nat()
+            )
+        ));
+
+        assert_eq!(result, Ok(
+            Ty::new_some(
+                "Var0".to_string(),
+                "X".to_string(),
+                Ty::new_record(fields)
             )
         ));
     }

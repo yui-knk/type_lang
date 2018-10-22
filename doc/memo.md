@@ -40,6 +40,7 @@ TODO:
 
 - Ref type syntax
 - Type alias
+- Type variable dereference in type_ckeck (type_of function) ?
 
 # How to implement fix operator
 
