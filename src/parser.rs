@@ -279,15 +279,36 @@ impl Parser {
         }
     }
 
-    // "let" variable "=" bound_value "in" body
+    //   "let" variable "=" bound_value "in" body
+    // | "let" "{" X "," x "}" "=" bound_value "in" body
     fn parse_let(&mut self) -> Result<Node, Error> {
-        let var = self.expect_identifier()?;
-        self.expect_keyword(Keyword::EQ)?;
-        let bound_value = self.parse_expression()?;
-        self.expect_keyword(Keyword::IN)?;
-        let body = self.parse_expression()?;
+        let token = self.next_token()?;
 
-        Ok(Node::new_let(var, bound_value, body))
+        match token.kind {
+            Kind::Keyword(Keyword::LBRACE) => {
+                let ty_var = self.expect_ty_identifier()?;
+                let ty_var_name = self.gen.get_name();
+                self.expect_keyword(Keyword::COMMA)?;
+                let var = self.expect_identifier()?;
+                self.expect_keyword(Keyword::RBRACE)?;
+                self.expect_keyword(Keyword::EQ)?;
+                let expr1 = self.parse_expression()?;
+                self.expect_keyword(Keyword::IN)?;
+                let expr2 = self.parse_expression()?;
+
+                Ok(Node::new_unpack(ty_var_name, ty_var, var, expr1, expr2))
+            },
+            _ => {
+                self.unget_token(token);
+                let var = self.expect_identifier()?;
+                self.expect_keyword(Keyword::EQ)?;
+                let bound_value = self.parse_expression()?;
+                self.expect_keyword(Keyword::IN)?;
+                let body = self.parse_expression()?;
+
+                Ok(Node::new_let(var, bound_value, body))
+            }
+        }
     }
 
     //   "{" fields "}"
@@ -622,6 +643,15 @@ impl Parser {
         }
     }
 
+    fn expect_ty_identifier(&mut self) -> Result<String, Error> {
+        let token = self.next_token()?;
+
+        match token.kind {
+            Kind::TyIdentifier(s) => Ok(s),
+            _ => Err(Error::UnexpectedToken("expect_ty_identifier call: TyIdentifier".to_string(), token))
+        }
+    }
+
     fn expect_eof(&mut self) -> Result<(), Error> {
         let token = self.next_token()?;
 
@@ -844,6 +874,29 @@ mod tests {
                     "X".to_string(),
                     Ty::new_id("Var0".to_string(), "X".to_string())
                 ),
+            )
+        ));
+    }
+
+    #[test]
+    fn test_parse_unpack() {
+        let mut parser = Parser::new(" let {X, x} = {*Nat, 10} as {Some X, X} in x".to_string());
+
+        assert_eq!(parser.parse(), Ok(
+            Node::new_unpack(
+                "Var0".to_string(),
+                "X".to_string(),
+                "x".to_string(),
+                Node::new_pack(
+                    Ty::new_nat(),
+                    Node::new_nat(10),
+                    Ty::new_some(
+                        "Var1".to_string(),
+                        "X".to_string(),
+                        Ty::new_id("Var1".to_string(), "X".to_string())
+                    ),
+                ),
+                Node::new_var_ref("x".to_string())
             )
         ));
     }

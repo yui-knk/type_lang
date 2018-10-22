@@ -90,6 +90,7 @@ pub enum Kind {
     Assign(Box<Node>, Box<Node>), // reference, value
     Loc(Location), // location index
     Pack(Box<Ty>, Box<Node>, Box<Ty>), // hidden representation type, expr, type
+    Unpack((String, String), String, Box<Node>, Box<Node>), // (auto generated type variable, original type variable), variable, bound_value, body.
     TyAbs(String, String, Box<Node>), // auto generated type variable, original type variable, body. (Type abstruction)
     TyApply(Box<Node>, Box<Ty>), // (Type apply)
 }
@@ -182,6 +183,10 @@ impl Node {
 
     pub fn new_pack(h_type: Ty, node: Node, ty: Ty) -> Node {
         Node { kind: Pack(Box::new(h_type), Box::new(node), Box::new(ty)) }
+    }
+
+    pub fn new_unpack(gen_name: String, orig_name: String, variable: String, bound: Node, body: Node) -> Node {
+        Node { kind: Unpack((gen_name, orig_name), variable, Box::new(bound), Box::new(body)) }
     }
 
     pub fn new_ty_abs(gen_name: String, orig_name: String, node: Node) -> Node {
