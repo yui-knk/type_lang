@@ -24,8 +24,8 @@ impl Fields {
     pub fn get(&self, k: &str) -> Option<&Box<Ty>>
     {
         for (i, (s, n)) in self.elements.iter().enumerate() {
-            if s == k { return Some(n) }
-            if i.to_string() == k { return Some(n) }
+            if s == k { return Option::Some(n) }
+            if i.to_string() == k { return Option::Some(n) }
         }
 
         None
@@ -44,6 +44,7 @@ pub enum Kind {
     Ref(Box<Ty>), // `ref 1` has `Ref Nat` type
     Id(String, String), // auto generated type variable, original type variable. (Type variable: 'X')
     All(String, String, Box<Ty>), // auto generated type variable, original type variable, type. (Universal type)
+    Some(String, String, Box<Ty>), // auto generated type variable, original type variable, type. (Existential type)
 }
 
 use self::Kind::*;
@@ -87,6 +88,10 @@ impl Ty {
 
     pub fn new_all(gen_name: String, orig_name: String, ty: Ty) -> Ty {
         Ty { kind: All(gen_name, orig_name, Box::new(ty)) }
+    }
+
+    pub fn new_some(gen_name: String, orig_name: String, ty: Ty) -> Ty {
+        Ty { kind: Some(gen_name, orig_name, Box::new(ty)) }
     }
 }
 

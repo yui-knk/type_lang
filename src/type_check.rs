@@ -419,7 +419,7 @@ impl TypeChecker {
                 let ty3 = self.replace_types(id, ty, *ty2);
                 Ty::new_all(s, org, ty3)
             },
-            // _ => panic!("replace_types does not support {:?}.", ty1)
+            _ => panic!("replace_types does not support {:?}.", ty1)
         }
 
     }

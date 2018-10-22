@@ -474,6 +474,7 @@ impl Parser {
     // | "<" label ":" type (, label ":" type) ... ">" // VariantType
     // | "{" label ":" type (, label ":" type) ... "}" // RecordType
     // | All type_variable "." type // UniversalType
+    // | "{" Some type_variable "," type "}" // ExistentialType
     // | atomic_type
     fn parse_type(&mut self) -> Result<Ty, Error> {
         let mut token = self.next_token()?;
@@ -498,24 +499,52 @@ impl Parser {
 
                 Ty::new_variant(fields)
             },
-            // Case: "{" label ":" type (, label ":" type) ... "}"
+            // RecordType or ExistentialType
             Kind::Keyword(Keyword::LBRACE) => {
-                let mut fields = Fields::new();
+                let token = self.next_token()?;
 
-                loop {
-                    let s = self.expect_identifier()?;
-                    self.expect_keyword(Keyword::COLON)?;
-                    let ty = self.parse_type()?;
-                    fields.insert(s.clone(), Box::new(ty));
-                    let token2 = self.next_token()?;
+                match token.kind {
+                    Kind::Keyword(Keyword::SOME) => {
+                        // Case: "{" Some type_variable "," type "}"
+                        let token = self.next_token()?;
 
-                    if token2.has_keyword(&Keyword::RBRACE) { break; }
-                    if !token2.has_keyword(&Keyword::COMMA) {
-                        return Err(Error::UnexpectedToken(format!("{:?}", Keyword::COMMA), token2));
+                        match token.kind {
+                            Kind::TyIdentifier(var) => {
+                                self.expect_keyword(Keyword::COMMA)?;
+                                let name = self.gen.get_name();
+                                self.push_type_name(var.clone(), name.clone());
+                                let ty = self.parse_type()?;
+                                self.pop_type_name();
+                                self.expect_keyword(Keyword::RBRACE)?;
+
+                                Ty::new_some(name, var, ty)
+                            },
+                            _ => {
+                                return Err(Error::UnexpectedToken("TyIdentifier expected.".to_string(), token));
+                            }
+                        }
+                    },
+                    _ => {
+                        // Case: "{" label ":" type (, label ":" type) ... "}"
+                        self.unget_token(token);
+                        let mut fields = Fields::new();
+
+                        loop {
+                            let s = self.expect_identifier()?;
+                            self.expect_keyword(Keyword::COLON)?;
+                            let ty = self.parse_type()?;
+                            fields.insert(s.clone(), Box::new(ty));
+                            let token2 = self.next_token()?;
+
+                            if token2.has_keyword(&Keyword::RBRACE) { break; }
+                            if !token2.has_keyword(&Keyword::COMMA) {
+                                return Err(Error::UnexpectedToken(format!("{:?}", Keyword::COMMA), token2));
+                            }
+                        }
+
+                        Ty::new_record(fields)
                     }
                 }
-
-                Ty::new_record(fields)
             },
             // Case: All type_variable "." type // UniversalType
             Kind::Keyword(Keyword::ALL) => {
@@ -804,14 +833,17 @@ mod tests {
 
     #[test]
     fn test_parse_pack() {
-        // 
-        let mut parser = Parser::new(" {*Nat, 10} as Nat".to_string());
+        let mut parser = Parser::new(" {*Nat, 10} as {Some X, X}".to_string());
 
         assert_eq!(parser.parse(), Ok(
             Node::new_pack(
                 Ty::new_nat(),
                 Node::new_nat(10),
-                Ty::new_nat(),
+                Ty::new_some(
+                    "Var0".to_string(),
+                    "X".to_string(),
+                    Ty::new_id("Var0".to_string(), "X".to_string())
+                ),
             )
         ));
     }
@@ -931,6 +963,18 @@ mod tests {
                         Ty::new_id("Var1".to_string(), "X".to_string()),
                     )
                 )
+            )
+        ));
+    }
+
+    #[test]
+    fn test_parse_existential_type() {
+        let mut parser = Parser::new("{Some X, X}".to_string());
+        assert_eq!(parser.parse_type(), Ok(
+            Ty::new_some(
+                "Var0".to_string(),
+                "X".to_string(),
+                Ty::new_id("Var0".to_string(), "X".to_string())
             )
         ));
     }
