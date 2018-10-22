@@ -61,7 +61,7 @@ impl Context {
 
 impl TypeChecker {
     pub fn new() -> TypeChecker {
-        let debug = true;
+        let debug = false;
         TypeChecker { context: Context::new(debug), debug: debug }
     }
 
@@ -1244,45 +1244,32 @@ mod tests {
         ));
     }
 
-    // #[test]
-    // fn test_check_ty_unpack() {
-    //     let result = check_type_of_string("
-    //         let {X, x} = {
-    //             *Nat,
-    //             {
-    //                 a=0,
-    //                 f=-> x : Nat {
-    //                     succ(x)
-    //                 }
-    //             }
-    //         } as {
-    //             Some X,
-    //             {
-    //                 a:X,
-    //                 f: X -> Nat
-    //             }
+    #[test]
+    fn test_check_ty_unpack() {
+        let result = check_type_of_string("
+            let {X, x} = {
+                *Nat,
+                {
+                    a=0,
+                    f=-> x : Nat {
+                        succ(x)
+                    }
+                }
+            } as {
+                Some X,
+                {
+                    a:X,
+                    f: X -> Nat
+                }
 
-    //         } in
-    //             x.f.(x.a)
-    //         ".to_string());
+            } in
+                x.f.(x.a)
+            ".to_string());
 
-    //     let mut fields = Fields::new();
-    //     fields.insert("a".to_string(), Box::new(Ty::new_id("Var0".to_string(), "X".to_string())));
-    //     fields.insert("f".to_string(), Box::new(
-    //         Ty::new_arrow(
-    //             Ty::new_id("Var0".to_string(), "X".to_string()),
-    //             Ty::new_nat()
-    //         )
-    //     ));
-
-    //     assert_eq!(result, Ok(
-    //         Ty::new_some(
-    //             "Var0".to_string(),
-    //             "X".to_string(),
-    //             Ty::new_record(fields)
-    //         )
-    //     ));
-    // }
+        assert_eq!(result, Ok(
+            Ty::new_nat()
+        ));
+    }
 
     #[test]
     fn test_check_variable_not_found() {
