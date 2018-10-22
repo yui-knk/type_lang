@@ -9,12 +9,14 @@ struct Context {
     // Use Vec as a stack.
     //
     // Value may be shared multi lambda bodies.
-   stack: Vec<(String, Ty)>    
+   stack: Vec<(String, Ty)>,
+   debug: bool,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct TypeChecker {
-    context: Context
+    context: Context,
+    debug: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -25,17 +27,19 @@ pub enum Error {
 }
 
 impl Context {
-    fn new() -> Context {
-        Context { stack: Vec::new() }
+    fn new(debug: bool) -> Context {
+        Context { stack: Vec::new(), debug: debug }
     }
 
     fn push(&mut self, variable: String, ty: Ty) {
+        self.debug(format!("({:?}, {:?}) is pushed.", variable, ty));
         self.stack.push((variable, ty));
     }
 
     fn pop(&mut self) {
-        if self.stack.pop().is_none() {
-            eprintln!("empty stack is popped.");
+        match self.stack.pop() {
+            Some(v) => { self.debug(format!("{:?} is popped.", v)); },
+            None => { eprintln!("empty stack is popped."); }
         }
     }
 
@@ -48,15 +52,26 @@ impl Context {
 
         None
     }
+
+    fn debug(&self, str: String) {
+        if !self.debug { return; }
+        eprintln!("{}", str);
+    }
 }
 
 impl TypeChecker {
     pub fn new() -> TypeChecker {
-        TypeChecker { context: Context::new() }
+        let debug = true;
+        TypeChecker { context: Context::new(debug), debug: debug }
     }
 
     pub fn check(&mut self, node: &Node) -> Result<Ty, Error> {
         self.type_of(node)
+    }
+
+    fn debug(&self, str: String) {
+        if !self.debug { return; }
+        eprintln!("{}", str);
     }
 
     // -- SUBTYPING --
@@ -121,12 +136,16 @@ impl TypeChecker {
         match node.kind {
             Kind::NoneExpression => Ok(Ty::new_bool()), // We do not have unit-type now
             Kind::VarRef(ref var) =>{
+                self.debug(format!("VarRef : {}", var));
+
                 match self.context.find_by_variable(var) {
                     Some(ty) => Ok(ty),
                     None => Err(Error::VariableNotFound(var.clone()))
                 }
             },
             Kind::Let(ref var, ref bound, ref body) => {
+                self.debug(format!("Let : {}", var));
+
                 let bound_ty = self.type_of(bound)?;
                 self.context.push(var.clone(), bound_ty);
                 let body_ty = self.type_of(body)?;
@@ -136,12 +155,16 @@ impl TypeChecker {
             // Calculate type of body with var is bound to ty and
             // concat the result with ty as arrow type.
             Kind::Lambda(ref var, ref body, ref ty) => {
+                self.debug(format!("Lambda : {}", var));
+
                 self.context.push(var.clone(), *ty.clone());
                 let body_ty = self.type_of(body)?;
                 self.context.pop();
                 Ok(Ty::new_arrow(*ty.clone(), body_ty))
             },
             Kind::Apply(ref rec, ref arg) => {
+                self.debug(format!("Apply :"));
+
                 let rec_type = self.type_of(rec)?;
                 let arg_type = self.type_of(arg)?;
 
@@ -185,6 +208,8 @@ impl TypeChecker {
                 Ok(Ty::new_bool())
             },
             Kind::If(ref cond, ref then_expr, ref else_expr) => {
+                self.debug(format!("If :"));
+
                 // cond should be Bool and then/else should have same type
                 let cond_type = self.type_of(cond)?;
                 if cond_type.kind != TyKind::Bool {
@@ -202,6 +227,8 @@ impl TypeChecker {
                 Ok(then_type)
             },
             Kind::Record(ref fields) => {
+                self.debug(format!("Record :"));
+
                 let mut fields_type = Fields::new();
 
                 for (s, node) in fields.iter() {
@@ -212,6 +239,8 @@ impl TypeChecker {
                 Ok(Ty::new_record(fields_type))
             },
             Kind::Projection(ref node, ref label) => {
+                self.debug(format!("Projection : {}", label));
+
                 let node_type = self.type_of(node)?;
 
                 match node_type.kind {
@@ -232,6 +261,8 @@ impl TypeChecker {
                 }
             },
             Kind::As(ref node, ref ty) => {
+                self.debug(format!("As :"));
+
                 let node_type = self.type_of(node)?;
 
                 if !self.subtype_eq(&node_type, ty) {
@@ -242,6 +273,8 @@ impl TypeChecker {
                 Ok(node_type)
             },
             Kind::Tag(ref tag, ref node, ref ty) => {
+                self.debug(format!("Tag :"));
+
                 // Get type from ty (should be Variant type) with tag as a key.
                 // And check the type of tag to match with the type of node.
 
@@ -271,6 +304,8 @@ impl TypeChecker {
                 }
             },
             Kind::Case(ref variant, ref cases) => {
+                self.debug(format!("Case :"));
+
                 // Check:
                 //   (1) Type of variant node is Variant.
                 //   (2) Variant type and cases has same number of labels.
@@ -323,6 +358,8 @@ impl TypeChecker {
                 }
             },
             Kind::Fix(ref node) => {
+                self.debug(format!("Fix :"));
+
                 let node_type = self.type_of(node)?;
 
                 match node_type.kind {
@@ -336,10 +373,14 @@ impl TypeChecker {
                 }
             },
             Kind::Ref(ref node) => {
+                self.debug(format!("Ref :"));
+
                 let node_type = self.type_of(node)?;
                 Ok(Ty::new_ref(node_type))
             },
             Kind::Deref(ref node) => {
+                self.debug(format!("Deref :"));
+
                 let node_type = self.type_of(node)?;
 
                 match node_type.kind {
@@ -350,6 +391,8 @@ impl TypeChecker {
                 }
             },
             Kind::Assign(ref left, ref right) => {
+                self.debug(format!("Assign :"));
+
                 let left_type = self.type_of(left)?;
                 let right_type = self.type_of(right)?;
 
@@ -363,10 +406,14 @@ impl TypeChecker {
                 }
             },
             Kind::TyAbs(ref s, ref org, ref node) => {
+                self.debug(format!("TyAbs :"));
+
                 let node_type = self.type_of(node)?;
                 Ok(Ty::new_all(s.clone(), org.clone(), node_type))
             },
             Kind::TyApply(ref node, ref ty) => {
+                self.debug(format!("TyApply :"));
+
                 let node_type = self.type_of(node)?;
 
                 match node_type.kind {
@@ -382,6 +429,9 @@ impl TypeChecker {
                 //     `{∃X, {a:X, f:X→Nat}}` with `X` replaced by `Nat`.
                 //
                 // and the returned type is `{∃X, {a:X, f:X→Nat}}`.
+
+                self.debug(format!("Pack :"));
+
                 match ty2.kind.clone() {
                     TyKind::Some(ref gen, ref _orig, ref ty3) => {
                         let node_type = self.type_of(node)?;
@@ -396,10 +446,41 @@ impl TypeChecker {
                     _ => Err(Error::TypeMismatch(format!("{:?} is not existential type.", ty2.kind)))
                 }
             },
+            Kind::Unpack(ref _gen, ref _orig, ref var, ref bound, ref body) => {
+                // In case
+                //
+                // ```
+                // let {X, x} = {*Nat, {a=0, f=λx:Nat. succ(x)}} as {∃X, {a:X, f:X→Nat}} in
+                //   x.f.(x.a)
+                // ```
+                //
+                // is given,
+                //
+                // (1) Check the type of `{*Nat, {a=0, f=λx:Nat. succ(x)}}` is an existential type.
+                // (2) Calculate the type of `x.f.(x.a)` with the type of `x` bound to `{a:X, f:X→Nat}`.
+                //
+                // and the returned type is the result of (2).
+
+                self.debug(format!("Unpack :"));
+
+                let bound_ty = self.type_of(bound)?;
+
+                match bound_ty.kind {
+                    TyKind::Some(_, _, ty2) => {
+                        self.context.push(var.clone(), *ty2);
+                        let body_ty = self.type_of(body)?;
+                        // let body_ty2 = self.replace_types(, , body_ty);
+                        self.context.pop();
+                        Ok(body_ty)
+                    },
+                    _ => Err(Error::TypeMismatch(format!("{:?} is not existential type.", bound_ty.kind)))
+                }
+
+            },
             Kind::Loc(..) => {
                 Err(Error::TypeMismatch(format!("User can not input Loc node: {:?}.", node)))
             },
-            _ => panic!(format!("{:?}", node))
+            // _ => panic!(format!("{:?}", node))
         }
     }
 
@@ -461,7 +542,7 @@ mod tests_env {
 
     #[test]
     fn test_find_by_variable() {
-        let mut context = Context::new();
+        let mut context = Context::new(false);
         let bool_ty = Ty::new_bool();
         let arrow_ty = Ty::new_arrow(Ty::new_bool(), Ty::new_bool());
 
@@ -1162,6 +1243,46 @@ mod tests {
             )
         ));
     }
+
+    // #[test]
+    // fn test_check_ty_unpack() {
+    //     let result = check_type_of_string("
+    //         let {X, x} = {
+    //             *Nat,
+    //             {
+    //                 a=0,
+    //                 f=-> x : Nat {
+    //                     succ(x)
+    //                 }
+    //             }
+    //         } as {
+    //             Some X,
+    //             {
+    //                 a:X,
+    //                 f: X -> Nat
+    //             }
+
+    //         } in
+    //             x.f.(x.a)
+    //         ".to_string());
+
+    //     let mut fields = Fields::new();
+    //     fields.insert("a".to_string(), Box::new(Ty::new_id("Var0".to_string(), "X".to_string())));
+    //     fields.insert("f".to_string(), Box::new(
+    //         Ty::new_arrow(
+    //             Ty::new_id("Var0".to_string(), "X".to_string()),
+    //             Ty::new_nat()
+    //         )
+    //     ));
+
+    //     assert_eq!(result, Ok(
+    //         Ty::new_some(
+    //             "Var0".to_string(),
+    //             "X".to_string(),
+    //             Ty::new_record(fields)
+    //         )
+    //     ));
+    // }
 
     #[test]
     fn test_check_variable_not_found() {
