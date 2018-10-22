@@ -114,46 +114,42 @@ impl Parser {
         token = self.next_token()?;
 
         if token.has_keyword(&Keyword::DOT) {
-            token = self.next_token()?;
+            loop {
+                token = self.next_token()?;
 
-            match token.kind {
-                // [apply]
-                //
-                // expr "." "(" expr ")" ("." "(" expr ")") ...
-                Kind::Keyword(Keyword::LPAREN) => {
-                    loop {
+                match token.kind {
+                    // [apply]
+                    //
+                    // expr "." "(" expr ")" ("." "(" expr ")") ...
+                    Kind::Keyword(Keyword::LPAREN) => {
                         let arg = self.parse_expression()?;
                         self.expect_keyword(Keyword::RPAREN)?;
                         node = Node::new_apply(node, arg);
-
-                        token = self.next_token()?;
-
-                        if !token.has_keyword(&Keyword::DOT) {
-                            self.unget_token(token);
-                            break;
-                        } else {
-                            self.expect_keyword(Keyword::LPAREN)?;
-                        }
+                    },
+                    // [projection]
+                    //
+                    // record "." label ("." label) ...
+                    //
+                    // label is:
+                    //        identifier
+                    //      | nat
+                    Kind::Identifier(ref s) => {
+                        node = Node::new_projection(node, s.clone());
+                    },
+                    Kind::Nat(ref i) => {
+                        node = Node::new_projection(node, i.to_string());
+                    },
+                    _ => {
+                        return Err(Error::UnexpectedToken("Identifier or Nat as label".to_string(), token));
                     }
-                },
-                // [projection]
-                //
-                // record "." label
-                //
-                // label is:
-                //        identifier
-                //      | nat
-                Kind::Identifier(ref s) => {
-                    node = Node::new_projection(node, s.clone());
-                },
-                Kind::Nat(ref i) => {
-                    node = Node::new_projection(node, i.to_string());
-                },
-                _ => {
-                    return Err(Error::UnexpectedToken("Identifier or Nat as label".to_string(), token));
+                }
+
+                token = self.next_token()?;
+
+                if !token.has_keyword(&Keyword::DOT) {
+                    break;
                 }
             }
-            token = self.next_token()?;
         }
 
         // [type apply]
@@ -862,6 +858,21 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_multi_apply() {
+        let mut parser = Parser::new("x.(1).(false) ".to_string());
+
+        assert_eq!(parser.parse(), Ok(
+            Node::new_apply(
+                Node::new_apply(
+                    Node::new_var_ref("x".to_string()),
+                    Node::new_nat(1)
+                ),
+                Node::new_bool(false)
+            )
+        ));
+    }
+
+    #[test]
     fn test_parse_pack() {
         let mut parser = Parser::new(" {*Nat, 10} as {Some X, X}".to_string());
 
@@ -1112,6 +1123,34 @@ mod tests {
                 "2".to_string()
             )
         }));
+    }
+
+    #[test]
+    fn test_parse_multi_projection() {
+        let mut parser = Parser::new("p.a.b".to_string());
+        assert_eq!(parser.parse(), Ok(
+            Node::new_projection(
+                Node::new_projection(
+                    Node::new_var_ref("p".to_string()),
+                    "a".to_string()
+                ),
+                "b".to_string()
+            )
+        ));
+    }
+
+    #[test]
+    fn test_parse_projection_apply() {
+        let mut parser = Parser::new("x.f.(a)".to_string());
+        assert_eq!(parser.parse(), Ok(
+            Node::new_apply(
+                Node::new_projection(
+                    Node::new_var_ref("x".to_string()),
+                    "f".to_string()
+                ),
+                Node::new_var_ref("a".to_string())
+            )
+        ));
     }
 
     #[test]
