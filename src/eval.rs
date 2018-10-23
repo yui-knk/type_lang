@@ -332,6 +332,7 @@ impl Evaluator {
 
     }
 
+    // Replace node in "node" with "arg_node" when node has reference to "variable".
     fn replace_variable_with_node(&self, variable: &str, arg_node: &Node, node: Node) -> Node {
         match node.kind {
               Kind::NoneExpression
