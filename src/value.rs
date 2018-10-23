@@ -46,7 +46,8 @@ pub enum Kind {
     Lambda(Node),
     Record(Fields),
     Tag(String, Box<Value>, Box<Ty>),
-    TyAbs(String, String, Box<Node>) // Type abstruction is value (P. 270)
+    Pack(Box<Ty>, Box<Node>, Box<Ty>), // Pack is value (P. 287)
+    TyAbs(String, String, Box<Node>), // Type abstruction is value (P. 270)
 }
 
 use self::Kind::*;
@@ -82,6 +83,10 @@ impl Value {
 
     pub fn new_tag(s: String, value: Value, ty: Ty) -> Value {
         Value { kind: Tag(s, Box::new(value), Box::new(ty)) }
+    }
+
+    pub fn new_pack(h_type: Ty, node: Node, ty: Ty) -> Value {
+        Value { kind: Pack(Box::new(h_type), Box::new(node), Box::new(ty)) }
     }
 
     pub fn new_ty_abs(gen_name: String, orig_name: String, node: Node) -> Value {

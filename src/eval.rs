@@ -127,6 +127,7 @@ impl Evaluator {
                 self.into_value(node.clone())
             },
             Kind::TyAbs(gen, orig, node) => Ok(Value::new_ty_abs(gen, orig, *node)),
+            Kind::Pack(ty1, node, ty2) => Ok(Value::new_pack(*ty1, *node, *ty2)),
             _ => Err(Error::CanNotConvertToValue(format!("This is not a value node: {:?}", node)))
         }
     }
@@ -1100,6 +1101,61 @@ mod tests {
                         "X".to_string(),
                     )
                 )
+            )
+        ));
+    }
+
+    #[test]
+    fn test_eval_pack() {
+        let result = eval_string("
+            {
+                *Nat,
+                {
+                    a=0,
+                    f=-> x : Nat {
+                        succ(x)
+                    }
+                }
+            } as {
+                Some X,
+                {
+                    a:X,
+                    f: X -> Nat
+                }
+
+            }
+        ".to_string());
+
+        let mut fields = Fields::new();
+        fields.insert("a".to_string(), Box::new(Node::new_nat(0)));
+        fields.insert("f".to_string(), Box::new(
+            Node::new_lambda(
+                "x".to_string(),
+                Node::new_succ(Node::new_var_ref("x".to_string())),
+                Ty::new_nat()
+            )
+        ));
+        let record_node = Node::new_record_from_fields(fields);
+
+        let mut fields = TyFields::new();
+        fields.insert("a".to_string(), Box::new(Ty::new_id("Var0".to_string(), "X".to_string())));
+        fields.insert("f".to_string(), Box::new(
+            Ty::new_arrow(
+                Ty::new_id("Var0".to_string(), "X".to_string()),
+                Ty::new_nat()
+            )
+        ));
+        let some_ty = Ty::new_some(
+            "Var0".to_string(),
+            "X".to_string(),
+            Ty::new_record(fields)
+        );
+
+        assert_eq!(result, Ok(
+            Value::new_pack(
+                Ty::new_nat(),
+                record_node,
+                some_ty,
             )
         ));
     }
