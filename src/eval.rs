@@ -126,6 +126,7 @@ impl Evaluator {
                 let node = self.env.get_from_store(l);
                 self.into_value(node.clone())
             },
+            Kind::TyAbs(gen, orig, node) => Ok(Value::new_ty_abs(gen, orig, *node)),
             _ => Err(Error::CanNotConvertToValue(format!("This is not a value node: {:?}", node)))
         }
     }
@@ -1078,6 +1079,29 @@ mod tests {
         fields.insert("second".to_string(), Box::new(Value::new_false()));
 
         assert_eq!(result, Ok(Value::new_record(fields)));
+    }
+
+    #[test]
+    fn test_eval_universal_type_3() {
+        // Type abstruction is value
+        let result = eval_string("
+            -> X { -> x: X { x } }
+        ".to_string());
+
+        assert_eq!(result, Ok(
+            Value::new_ty_abs(
+                "Var0".to_string(),
+                "X".to_string(),
+                Node::new_lambda(
+                    "x".to_string(),
+                    Node::new_var_ref("x".to_string()),
+                    Ty::new_id(
+                        "Var0".to_string(),
+                        "X".to_string(),
+                    )
+                )
+            )
+        ));
     }
 
     #[test]
