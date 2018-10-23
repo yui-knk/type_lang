@@ -19,6 +19,8 @@ These features are implemented:
 - Assign.     "let x = ref false in x := true".
 - TyAbs.      "-> X { false }".
 - TyApply.    "-> X { false } [Nat]".
+- Pack.       "{*Nat, { a=0, f=-> x:Nat { succ(x) }}} as { Some X, { a:X, f:X -> Nat }}".
+- Unpack.     "let {X, x} = packed in x.f.(x.a)".
 
 These types are implemented:
 
@@ -31,6 +33,7 @@ These types are implemented:
 - Ref
 - Top
 - All (Universal type)
+- Some (Existential type)
 
 These features are not implemented:
 
