@@ -436,7 +436,7 @@ impl Evaluator {
                 let generator2 = self.replace_variable_with_node(variable, arg_node, *generator);
                 Node::new_fix(generator2)
             },
-            _ => panic!("")
+            _ => panic!(format!("{:?} is not supported by replace_variable_with_node.", node))
         }
     }
 
