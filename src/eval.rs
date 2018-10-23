@@ -164,7 +164,9 @@ impl Evaluator {
             Kind::Loc(..) => Err(Error::UnexpectedNode("Loc node should not appear as user input.".to_string())),
             Kind::TyAbs(..) => self.eval_ty_abs(node),
             Kind::TyApply(..) => self.eval_ty_apply(node),
-            _ => panic!(format!("{:?} is not supported by eval.", node))
+            Kind::Pack(..) => self.eval_pack(node),
+            Kind::Unpack(..) => self.eval_unpack(node),
+            // _ => panic!(format!("{:?} is not supported by eval.", node))
         }
     }
 
@@ -247,6 +249,36 @@ impl Evaluator {
                 }
             }
             _ => Err(Error::UnexpectedNode(format!("eval_ty_apply {:?}", node)))
+        }
+    }
+
+    fn eval_pack(&mut self, node: Node) -> Result<Node, Error> {
+        self.debug(format!("eval_pack"));
+
+        // Pack is a value (P. 287).
+        Ok(node)
+    }
+
+    fn eval_unpack(&mut self, node: Node) -> Result<Node, Error> {
+        match node.kind {
+            Kind::Unpack(_gen, _orig, var, bound, body) => {
+                self.debug(format!("eval_unpack"));
+
+                let bound_val = self._eval(*bound)?;
+
+                match bound_val.kind {
+                    // "E-UnpackPack" expects Pack node.
+                    Kind::Pack(_ty1, node, _ty2) => {
+                        let node_val = self._eval(*node)?;
+                        let body2 = self.replace_variable_with_node(&var, &node_val, *body);
+                        self._eval(body2)
+                    },
+                    _ => Err(Error::UnexpectedNode(format!("eval_unpack Pack is expected, {:?}", bound_val)))
+                }
+
+
+            },
+            _ => Err(Error::UnexpectedNode(format!("eval_unpack Unpack is expected, {:?}", node)))
         }
     }
 
@@ -1046,6 +1078,31 @@ mod tests {
         fields.insert("second".to_string(), Box::new(Value::new_false()));
 
         assert_eq!(result, Ok(Value::new_record(fields)));
+    }
+
+    #[test]
+    fn test_eval_unpack_pack() {
+        let result = eval_string("
+            let {X, x} = {
+                *Nat,
+                {
+                    a=0,
+                    f=-> x : Nat {
+                        succ(x)
+                    }
+                }
+            } as {
+                Some X,
+                {
+                    a:X,
+                    f: X -> Nat
+                }
+
+            } in
+                x.f.(x.a)
+        ".to_string());
+
+        assert_eq!(result, Ok(Value::new_nat(1)));
     }
 
     #[test]
