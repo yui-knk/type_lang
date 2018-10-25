@@ -290,7 +290,9 @@ impl Parser {
                 self.expect_keyword(Keyword::EQ)?;
                 let expr1 = self.parse_expression()?;
                 self.expect_keyword(Keyword::IN)?;
+                self.push_type_name(ty_var.clone(), ty_var_name.clone());
                 let expr2 = self.parse_expression()?;
+                self.pop_type_name();
 
                 Ok(Node::new_unpack(ty_var_name, ty_var, var, expr1, expr2))
             },
@@ -908,6 +910,36 @@ mod tests {
                     ),
                 ),
                 Node::new_var_ref("x".to_string())
+            )
+        ));
+
+        let mut parser = Parser::new(" let {X, x} = {*Nat, 10} as {Some X, X} in (-> y:X { y }).(x)".to_string());
+
+        assert_eq!(parser.parse(), Ok(
+            Node::new_unpack(
+                "Var0".to_string(),
+                "X".to_string(),
+                "x".to_string(),
+                Node::new_pack(
+                    Ty::new_nat(),
+                    Node::new_nat(10),
+                    Ty::new_some(
+                        "Var1".to_string(),
+                        "X".to_string(),
+                        Ty::new_id("Var1".to_string(), "X".to_string())
+                    ),
+                ),
+                Node::new_apply(
+                    Node::new_lambda(
+                        "y".to_string(),
+                        Node::new_var_ref("y".to_string()),
+                        Ty::new_id(
+                            "Var0".to_string(),
+                            "X".to_string(),
+                        )
+                    ),
+                    Node::new_var_ref("x".to_string())
+                )
             )
         ));
     }
