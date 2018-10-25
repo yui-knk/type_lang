@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use node::{Node, Kind};
+use node::{Node, Kind, Fields as NodeFields, Cases};
 use ty::{Ty, Kind as TyKind, Fields};
 
 #[derive(Debug, PartialEq)]
@@ -9,8 +9,8 @@ struct Context {
     // Use Vec as a stack.
     //
     // Value may be shared multi lambda bodies.
-   stack: Vec<(String, Ty)>,
-   debug: bool,
+    stack: Vec<(String, Ty)>,
+    debug: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -164,7 +164,6 @@ impl TypeChecker {
             },
             Kind::Apply(ref rec, ref arg) => {
                 self.debug(format!("Apply :"));
-
                 let rec_type = self.type_of(rec)?;
                 let arg_type = self.type_of(arg)?;
 
@@ -446,7 +445,7 @@ impl TypeChecker {
                     _ => Err(Error::TypeMismatch(format!("{:?} is not existential type.", ty2.kind)))
                 }
             },
-            Kind::Unpack(ref _gen, ref _orig, ref var, ref bound, ref body) => {
+            Kind::Unpack(ref gen, ref _orig, ref var, ref bound, ref body) => {
                 // In case
                 //
                 // ```
@@ -466,10 +465,10 @@ impl TypeChecker {
                 let bound_ty = self.type_of(bound)?;
 
                 match bound_ty.kind {
-                    TyKind::Some(_, _, ty2) => {
+                    TyKind::Some(some_gen, some_orig, ty2) => {
                         self.context.push(var.clone(), *ty2);
-                        let body_ty = self.type_of(body)?;
-                        // let body_ty2 = self.replace_types(, , body_ty);
+                        let body2 = self.replace_types_in_node(&gen, &Ty::new_id(some_gen, some_orig), *body.clone());
+                        let body_ty = self.type_of(&body2)?;
                         self.context.pop();
                         Ok(body_ty)
                     },
@@ -481,6 +480,109 @@ impl TypeChecker {
                 Err(Error::TypeMismatch(format!("User can not input Loc node: {:?}.", node)))
             },
             // _ => panic!(format!("{:?}", node))
+        }
+    }
+
+    // Replace type variables in "node" with "ty" whose id is same to "id".
+    fn replace_types_in_node(&self, id: &String, ty: &Ty, node: Node) -> Node {
+        match node.clone().kind {
+            Kind::NoneExpression => node,
+            Kind::VarRef(_) => node,
+            Kind::Lambda(s, n, t) => Node::new_lambda(
+                s,
+                self.replace_types_in_node(id, ty, *n),
+                self.replace_types(id, ty, *t)
+            ),
+            Kind::Let(s, n1, n2) => Node::new_let(
+                s,
+                self.replace_types_in_node(id, ty, *n1),
+                self.replace_types_in_node(id, ty, *n2),
+            ),
+            Kind::Apply(n1, n2) => Node::new_apply(
+                self.replace_types_in_node(id, ty, *n1),
+                self.replace_types_in_node(id, ty, *n2),
+            ),
+            Kind::Bool(_) => node,
+            Kind::Zero => node,
+            Kind::Succ(n) => Node::new_succ(
+                self.replace_types_in_node(id, ty, *n),
+            ),
+            Kind::Pred(n) => Node::new_pred(
+                self.replace_types_in_node(id, ty, *n),
+            ),
+            Kind::Iszero(n) => Node::new_iszero(
+                self.replace_types_in_node(id, ty, *n),
+            ),
+            Kind::Record(fields) => {
+                let mut fields2 = NodeFields::new();
+
+                for (s, node) in fields.iter() {
+                    let node2 = self.replace_types_in_node(id, ty, *node.clone());
+                    fields2.insert(s.clone(), Box::new(node2));
+                }
+
+                Node::new_record_from_fields(fields2)
+            },
+            Kind::Projection(n, s) => Node::new_projection(
+                self.replace_types_in_node(id, ty, *n),
+                s,
+            ),
+            Kind::If(n1, n2, n3) => Node::new_if(
+                self.replace_types_in_node(id, ty, *n1),
+                self.replace_types_in_node(id, ty, *n2),
+                self.replace_types_in_node(id, ty, *n3),
+            ),
+            Kind::Unit => node,
+            Kind::Tag(s, n, t) => Node::new_tag(
+                s,
+                self.replace_types_in_node(id, ty, *n),
+                self.replace_types(id, ty, *t)
+            ),
+            Kind::Case(n, cases) => {
+                let mut cases2 = Cases::new();
+
+                for (s1, (s2, node)) in cases.iter() {
+                    let node2 = self.replace_types_in_node(id, ty, *node.clone());
+                    cases2.insert(s1.clone(), s2.clone(), node2);
+                }
+
+                Node::new_case(self.replace_types_in_node(id, ty, *n), cases2)
+            },
+            Kind::As(n, t) => Node::new_as(
+                self.replace_types_in_node(id, ty, *n),
+                self.replace_types(id, ty, *t)
+            ),
+            Kind::Fix(n) => Node::new_fix(
+                self.replace_types_in_node(id, ty, *n),
+            ),
+            Kind::Ref(n) => Node::new_ref(
+                self.replace_types_in_node(id, ty, *n),
+            ),
+            Kind::Deref(n) => Node::new_deref(
+                self.replace_types_in_node(id, ty, *n),
+            ),
+            Kind::Assign(n1, n2) => Node::new_assign(
+                self.replace_types_in_node(id, ty, *n1),
+                self.replace_types_in_node(id, ty, *n2),
+            ),
+            Kind::Loc(_) => node,
+            Kind::Pack(t1, n, t2) => Node::new_pack(
+                self.replace_types(id, ty, *t1),
+                self.replace_types_in_node(id, ty, *n),
+                self.replace_types(id, ty, *t2),
+            ),
+            Kind::Unpack(s1, s2, s3, n1, n2) => Node::new_unpack(
+                s1, s2, s3,
+                self.replace_types_in_node(id, ty, *n1),
+                self.replace_types_in_node(id, ty, *n2),
+            ),
+            Kind::TyAbs(s1, s2, n) => Node::new_ty_abs(
+                s1, s2, self.replace_types_in_node(id, ty, *n)
+            ),
+            Kind::TyApply(n, t) => Node::new_ty_apply(
+                self.replace_types_in_node(id, ty, *n),
+                self.replace_types(id, ty, *t),
+            ),
         }
     }
 
@@ -1264,6 +1366,31 @@ mod tests {
 
             } in
                 x.f.(x.a)
+            ".to_string());
+
+        assert_eq!(result, Ok(
+            Ty::new_nat()
+        ));
+
+
+        let result = check_type_of_string("
+            let {X, x} = {
+                *Nat,
+                {
+                    a=0,
+                    f=-> y : Nat {
+                        succ(y)
+                    }
+                }
+            } as {
+                Some Y,
+                {
+                    a:Y,
+                    f: Y -> Nat
+                }
+
+            } in
+                (-> y:X { x.f.(y) }).(x.a)
             ".to_string());
 
         assert_eq!(result, Ok(
