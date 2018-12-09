@@ -954,6 +954,12 @@ mod tests {
         assert_eq!(result, Ok(Value::new_true()));
     }
 
+    #[test]
+    fn test_eval_unitt() {
+        let result = eval_string("unit as Unit".to_string());
+        assert_eq!(result, Ok(Value::new_unit()));
+    }
+
     // TODO: type_check returns `VariableNotFound("y")` error
     // #[test]
     // fn test_eval_variable_not_found() {

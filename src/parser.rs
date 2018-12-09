@@ -13,7 +13,7 @@ pub struct Parser {
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
-    UnknownToken,
+    UnknownToken(String),
     UnexpectedToken(String, Token), // expected, actual
     UnexpectedEOF,
     NotSupported(Token),
@@ -374,6 +374,7 @@ impl Parser {
             Kind::Keyword(Keyword::BOOL) => Ok(Ty::new_bool()),
             Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
             Kind::Keyword(Keyword::TOP) => Ok(Ty::new_top()),
+            Kind::Keyword(Keyword::UNITT) => Ok(Ty::new_unit()),
             _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
         }
     }
@@ -458,7 +459,7 @@ impl Parser {
 
     fn build_error(&self, error: lexer::Error) -> Error {
         match error {
-            lexer::Error::UnknownToken(_) => Error::UnknownToken,
+            lexer::Error::UnknownToken(s) => Error::UnknownToken(s),
             lexer::Error::UnexpectedEOF => Error::UnexpectedEOF
         }
     }
@@ -723,6 +724,14 @@ mod tests {
         let mut parser = Parser::new("Top".to_string());
         assert_eq!(parser.parse_type(), Ok(Ty {
             kind: TyKind::Top
+        }));
+    }
+
+    #[test]
+    fn test_parse_unit_type() {
+        let mut parser = Parser::new("Unit".to_string());
+        assert_eq!(parser.parse_type(), Ok(Ty {
+            kind: TyKind::Unit
         }));
     }
 

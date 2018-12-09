@@ -25,6 +25,7 @@ pub enum Keyword {
     BOOL,   // 'Bool' (type)
     NAT,    // 'Nat' (type)
     TOP,    // 'Top' (type)
+    UNITT,  // 'Unit' (type)
     IF,
     THEN,
     ELSE,
@@ -108,6 +109,10 @@ impl Token {
 
     pub fn new_top() -> Token {
         Token { kind: Keyword(Keyword::TOP) }
+    }
+
+    pub fn new_unitt() -> Token {
+        Token { kind: Keyword(Keyword::UNITT) }
     }
 
     pub fn new_nat(i: u32) -> Token {

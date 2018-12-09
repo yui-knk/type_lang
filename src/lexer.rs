@@ -60,6 +60,7 @@ impl Lexer {
             'B' => self.read_bool(),
             'N' => self.read_nnat(),
             'T' => self.read_top(),
+            'U' => self.read_unit(),
             '0'...'9' => self.read_nat(),
             'a'...'z' => self.read_identifier_or_keyword(),
             '\n' => {
@@ -243,6 +244,15 @@ impl Lexer {
         self.next_char();
 
         Ok(Token::new_top())
+    }
+
+    fn read_unit(&mut self) -> Result<Token, Error> {
+        self.expect_next_char('n')?;
+        self.expect_next_char('i')?;
+        self.expect_next_char('t')?;
+        self.next_char();
+
+        Ok(Token::new_unitt())
     }
 
     fn read_arrow(&mut self) -> Result<Token, Error> {
@@ -568,6 +578,14 @@ mod tests {
         let mut lexer = Lexer::new(" Top ".to_string());
 
         assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::TOP)));
+        assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
+    }
+
+    #[test]
+    fn test_next_token_unitt() {
+        let mut lexer = Lexer::new(" Unit ".to_string());
+
+        assert_eq!(lexer.next_token(), Ok(Token::new_keyword(Keyword::UNITT)));
         assert_eq!(lexer.next_token(), Ok(Token::new_eof()));
     }
 
