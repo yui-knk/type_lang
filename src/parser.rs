@@ -86,28 +86,21 @@ impl Parser {
 
         token = self.next_token()?;
 
-        if token.has_keyword(&Keyword::DOT) {
+        loop {
+            if !token.has_keyword(&Keyword::DOT) {
+                break;
+            }
+
             token = self.next_token()?;
 
             match token.kind {
                 // [apply]
                 //
-                // expr "." "(" expr ")" ("." "(" expr ")") ...
+                // expr "." "(" expr ")"
                 Kind::Keyword(Keyword::LPAREN) => {
-                    loop {
-                        let arg = self.parse_expression()?;
-                        self.expect_keyword(Keyword::RPAREN)?;
-                        node = Node::new_apply(node, arg);
-
-                        token = self.next_token()?;
-
-                        if !token.has_keyword(&Keyword::DOT) {
-                            self.unget_token(token);
-                            break;
-                        } else {
-                            self.expect_keyword(Keyword::LPAREN)?;
-                        }
-                    }
+                    let arg = self.parse_expression()?;
+                    self.expect_keyword(Keyword::RPAREN)?;
+                    node = Node::new_apply(node, arg);
                 },
                 // [projection]
                 //
