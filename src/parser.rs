@@ -367,6 +367,9 @@ impl Parser {
 
     //   Bool
     // | Nat
+    // | Top
+    // | Unit
+    // | Ref
     fn parse_atomic_type(&mut self) -> Result<Ty, Error> {
         let token = self.next_token()?;
 
@@ -375,7 +378,11 @@ impl Parser {
             Kind::Keyword(Keyword::NAT) => Ok(Ty::new_nat()),
             Kind::Keyword(Keyword::TOP) => Ok(Ty::new_top()),
             Kind::Keyword(Keyword::UNITT) => Ok(Ty::new_unit()),
-            _ => Err(Error::UnexpectedToken("{:?} is not an atomic type".to_string(), token))
+            Kind::Keyword(Keyword::REFT) => {
+                let ty = self.parse_type()?;
+                Ok(Ty::new_ref(ty))
+            },
+            _ => Err(Error::UnexpectedToken(format!("{:?} is not an atomic type", token), token))
         }
     }
 

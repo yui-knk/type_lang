@@ -26,6 +26,7 @@ pub enum Keyword {
     NAT,    // 'Nat' (type)
     TOP,    // 'Top' (type)
     UNITT,  // 'Unit' (type)
+    REFT,   // 'Ref' (type)
     IF,
     THEN,
     ELSE,
@@ -113,6 +114,10 @@ impl Token {
 
     pub fn new_unitt() -> Token {
         Token { kind: Keyword(Keyword::UNITT) }
+    }
+
+    pub fn new_reft() -> Token {
+        Token { kind: Keyword(Keyword::REFT) }
     }
 
     pub fn new_nat(i: u32) -> Token {

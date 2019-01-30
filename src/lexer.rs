@@ -61,6 +61,7 @@ impl Lexer {
             'N' => self.read_nnat(),
             'T' => self.read_top(),
             'U' => self.read_unit(),
+            'R' => self.read_ref(),
             '0'...'9' => self.read_nat(),
             'a'...'z' => self.read_identifier_or_keyword(),
             '\n' => {
@@ -253,6 +254,14 @@ impl Lexer {
         self.next_char();
 
         Ok(Token::new_unitt())
+    }
+
+    fn read_ref(&mut self) -> Result<Token, Error> {
+        self.expect_next_char('e')?;
+        self.expect_next_char('f')?;
+        self.next_char();
+
+        Ok(Token::new_reft())
     }
 
     fn read_arrow(&mut self) -> Result<Token, Error> {
