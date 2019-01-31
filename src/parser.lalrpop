@@ -1,0 +1,291 @@
+use std::str::FromStr;
+
+use node::{Node, Cases};
+use ty::{Ty, Fields};
+
+grammar;
+
+pub Program: Node = {
+    <es:Expressions> => es,
+}
+
+// Precedence from lowest to highest
+//
+// %left  "as"
+// %right ":="
+// %right "fix" "ref"
+// %right "!"
+// %right "iszero" "succ" "pred"
+//
+//
+
+// Precedence of type from lowest to highest
+//
+// %left  "->"
+// %right "Ref"
+//
+
+// All types
+//
+//   atomic_type "->" arrow_type  // ArrowType
+// | "<" label ":" type (, label ":" type) ... ">" // VariantType
+// | "{" label ":" type (, label ":" type) ... "}" // RecordType
+// | atomic_type
+pub Type: Ty = {
+    <a:ArrowType> => a,
+    <b:BasicType> => b,
+}
+
+ArrowType: Ty = {
+    <t:BasicType> "->" <arrow:ArrowType> => {
+        Ty::new_arrow(t, arrow)
+    },
+    <t1:BasicType> "->" <t2:BasicType> => {
+        Ty::new_arrow(t1, t2)
+    }
+}
+
+BasicType: Ty = {
+    <v:VariantType> => v,
+    <r:RecordType> => r,
+    <a:AtomicType> => a,
+}
+
+// "<" label ":" type (, label ":" type) ... ">"
+VariantType: Ty = {
+    "<" <lt:LabelTypes> ">" => Ty::new_variant(lt)
+}
+
+// "{" label ":" type (, label ":" type) ... "}"
+RecordType: Ty = {
+    "{" <lt:LabelTypes> "}" => Ty::new_record(lt)
+}
+
+// label ":" type (, label ":" type) ...
+LabelTypes: Fields = {
+    <lt:LabelTypes> "," <l:Ident> ":" <t:Type> => {
+        let mut lt = lt;
+        lt.insert(l, Box::new(t));
+        lt
+    },
+    <l:Ident> ":" <t:Type> => {
+        let mut f = Fields::new();
+        f.insert(l, Box::new(t));
+        f
+    },
+}
+
+AtomicType: Ty = {
+    "Bool" => Ty::new_bool(),
+    "Nat" => Ty::new_nat(),
+    "Top" => Ty::new_top(),
+    "Unit" => Ty::new_unit(),
+    "Ref" "<" <t:Type> ">" => Ty::new_ref(t),
+}
+
+Expressions: Node = {
+    <es:Expressions> ";" <e:Expression0> => {
+        Node::new_apply(
+            Node::new_lambda("_".to_string(), e, Ty::new_unit()),
+            es
+        )
+    },
+    <e:Expression0> => e,
+}
+
+Expression0: Node = {
+    // [as]
+    <e:Expression0> "as" <t:Type> => {
+        Node::new_as(e, t)
+    },
+    <e:Expression1> => e,
+}
+
+Expression1: Node = {
+    // [assign]
+    <e1:Expression1> ":=" <e2:Expression2> => {
+        Node::new_assign(e1, e2)
+    },
+    <p:Projection> => p,
+    <e:Expression2> => e,
+}
+
+// [projection]
+//
+// record "." label
+//
+// label is:
+//        identifier
+//      | nat
+Projection: Node = {
+    <e:Expression1> "." <i:Ident> => {
+        Node::new_projection(e, i)
+    },
+    <e:Expression1> "." <n:Num> => {
+        Node::new_projection(e, n.to_string())
+    },
+}
+
+Expression2: Node = {
+    // "!" expr
+    "!" <e:Expression2> => {
+        Node::new_deref(e)
+    },
+    // "->" x ":" type "{" exp "}"
+    //
+    // type is a type of variable x, not a type of whole lambda.
+    "->" <var:Ident> ":" <ty:Type> "{" <e:Expression2> "}" => {
+        Node::new_lambda(var, e, ty)
+    },
+    // "if" cond "then" then_expr "else" else_expr
+    "if" <cond:Expression2> "then" <then_expr:Expression2> "else" <else_expr:Expression2> => {
+        Node::new_if(cond, then_expr, else_expr)
+    },
+    // "case" expr "of" "<" label "=" variable ">" "=>" expr ("|" "<" label "=" variable ">" "=>" expr) ...
+    "case" <variant:Expression2> "of" <ps:Patterns> => {
+        let mut cases = Cases::new();
+
+        for (label, var, expr) in ps {
+            cases.insert(label, var, expr);
+        }
+
+        Node::new_case(variant, cases)
+    },
+    // "letrec" variable ":" type "=" lambda_body "in" body
+    //
+    //    "letrec x : T = t1 in t2"
+    // is "let x = fix (-> x : T { t1 }) in t2"
+    "letrec" <var:Ident> ":" <t:Type> "=" <lambda_body:Expression2> "in" <body:Expression3> => {
+        let lambda = Node::new_lambda(var.clone(), lambda_body, t);
+        let fix = Node::new_fix(lambda);
+        Node::new_let(var, fix, body)
+    },
+    // "let" variable "=" bound_value "in" body
+    "let" <var:Ident> "=" <bound_value:Expression2> "in" <body:Expression3> => {
+        Node::new_let(var, bound_value, body)
+    },
+    <e:Expression3> => e,
+}
+
+Patterns: Vec<(String, String, Node)> = {
+    <ps:Patterns> "|" <p:Pattern> => {
+        let mut ps = ps;
+        ps.push(p);
+        ps
+    },
+    <p:Pattern> => {
+        vec![p]
+    }
+}
+
+Pattern: (String, String, Node) = {
+    "<" <label:Ident> "=" <var:Ident> ">" "=>" <expr:Expression3> => {
+        (label, var, expr)
+    }
+}
+
+Expression3: Node = {
+    // "fix" expr
+    "fix" <e:Expression3> => {
+        Node::new_fix(e)
+    },
+    // "ref" expr
+    "ref" <e:Expression3> => {
+        Node::new_ref(e)
+    },
+    <e:Expression4> => e,
+}
+
+Expression4: Node = {
+    // [apply]
+    // expr ".." "(" expr ")"
+    <e:Expression4> ".." "(" <arg:Expression4> ")" => {
+        Node::new_apply(e, arg)
+    },
+    <e:Expression5> => e,
+}
+
+Expression5: Node = {
+    "iszero" <e:Expression6> => Node::new_iszero(e),
+    "succ" <e:Expression6> => Node::new_succ(e),
+    "pred" <e:Expression6> => Node::new_pred(e),
+    <e:Expression6> => e,
+}
+
+Expression6: Node = {
+    <r:Record> => r,
+    <t:Tag> => t,
+    <p:Primary> => p,
+    // "(" expr ")"
+    "(" <e:Expressions> ")" => e,
+}
+
+// "{" fields "}"
+Record: Node = {
+    "{" <fs:RecordFields> "}" => Node::new_record(fs)
+}
+
+// field ("," field) ...
+RecordFields: Vec<(Option<String>, Node)> = {
+    <rfs:RecordFields> "," <rf:RecordField> => {
+        let mut rfs = rfs;
+        rfs.push(rf);
+        rfs
+    },
+    <rf:RecordField> => {
+        vec![rf]
+    },
+}
+
+//   label "=" expr
+// | expr
+//
+// label is:
+//      identifier
+RecordField: (Option<String>, Node) = {
+    <l:Ident> "=" <e:Expression0> => {
+        (Some(l), e)
+    },
+    <e:Expression0> => {
+        (None, e)
+    },
+}
+
+// "<" label "=" expr ">" "as" type
+Tag: Node = {
+    "<" <label:Ident> "=" <e:Expression1> ">" "as" <t:Type> => {
+        Node::new_tag(label, e, t)
+    }
+}
+
+Primary: Node = {
+    <b:Bool> => b,
+    <n:Nat> => n,
+    <s:VarRef> => s,
+    <u:Unit> => u,
+}
+
+Unit: Node = {
+    "unit" => Node::new_unit()
+}
+
+VarRef: Node = {
+    <s:Ident> => Node::new_var_ref(s)
+}
+
+Nat: Node = {
+    <n:Num> => Node::new_nat(n)
+}
+
+Num: u32 = {
+    <s:r"[0-9]+"> => u32::from_str(s).unwrap()
+}
+
+Bool: Node = {
+    "true" => Node::new_bool(true),
+    "false" => Node::new_bool(false),
+}
+
+Ident: String = {
+    <s:r"[a-zA-Z][a-zA-Z0-9]*"> => s.to_string(),
+}
