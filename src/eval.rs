@@ -836,7 +836,7 @@ mod tests {
 
     #[test]
     fn test_eval_projection_apply() {
-        let result = eval_string("{x= -> y:Nat { y }}.x..(1)".to_string());
+        let result = eval_string("({x= -> y:Nat { y }}.x)..(1)".to_string());
         assert_eq!(result, Ok(Value::new_nat(1)));
     }
 

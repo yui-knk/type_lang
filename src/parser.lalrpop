@@ -113,10 +113,10 @@ Expression1: Node = {
 //        identifier
 //      | nat
 Projection: Node = {
-    <e:Expression6> "." <i:Ident> => {
+    <e:Expression7> "." <i:Ident> => {
         Node::new_projection(e, i)
     },
-    <e:Expression6> "." <n:Num> => {
+    <e:Expression7> "." <n:Num> => {
         Node::new_projection(e, n.to_string())
     },
 }
@@ -192,11 +192,6 @@ Expression3: Node = {
 }
 
 Expression4: Node = {
-    // [apply]
-    // expr ".." "(" expr ")"
-    <e:Expression4> ".." "(" <arg:Expression0> ")" => {
-        Node::new_apply(e, arg)
-    },
     // [assign]
     <e1:Expression4> ":=" <e2:Expression5> => {
         Node::new_assign(e1, e2)
@@ -213,6 +208,15 @@ Expression5: Node = {
 }
 
 Expression6: Node = {
+    // [apply]
+    // expr ".." "(" expr ")"
+    <e:Expression6> ".." "(" <arg:Expression0> ")" => {
+        Node::new_apply(e, arg)
+    },
+    <e:Expression7> => e,
+}
+
+Expression7: Node = {
     <r:Record> => r,
     <t:Tag> => t,
     <p:Primary> => p,

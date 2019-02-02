@@ -144,6 +144,46 @@ mod tests {
                 Box::new(Ty::new_bool())
             )}
         ));
+
+        let result = parser::ProgramParser::new().parse("
+            (fix
+                (-> ie:Nat->Nat {
+                    -> x:Nat {
+                        if iszero x
+                        then 10
+                        else succ ie..(pred x)
+                    }
+                })
+            )..(10)
+        ");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Node::new_apply(
+            Node::new_fix(
+                Node::new_lambda(
+                    "ie".to_string(),
+                    Node::new_lambda(
+                        "x".to_string(),
+                        Node::new_if(
+                            Node::new_iszero(
+                                Node::new_var_ref("x".to_string())
+                            ),
+                            Node::new_nat(10),
+                            Node::new_succ(
+                                Node::new_apply(
+                                    Node::new_var_ref("ie".to_string()),
+                                    Node::new_pred(
+                                        Node::new_var_ref("x".to_string())
+                                    )
+                                )
+                            )
+                        ),
+                        Ty::new_nat()
+                    ),
+                    Ty::new_arrow(Ty::new_nat(), Ty::new_nat())
+                )
+            ),
+            Node::new_nat(10)
+        ));
     }
 
     #[test]
