@@ -102,11 +102,6 @@ Expression0: Node = {
 }
 
 Expression1: Node = {
-    // [assign]
-    <e1:Expression1> ":=" <e2:Expression2> => {
-        Node::new_assign(e1, e2)
-    },
-    <p:Projection> => p,
     <e:Expression2> => e,
 }
 
@@ -118,10 +113,10 @@ Expression1: Node = {
 //        identifier
 //      | nat
 Projection: Node = {
-    <e:Expression1> "." <i:Ident> => {
+    <e:Expression6> "." <i:Ident> => {
         Node::new_projection(e, i)
     },
-    <e:Expression1> "." <n:Num> => {
+    <e:Expression6> "." <n:Num> => {
         Node::new_projection(e, n.to_string())
     },
 }
@@ -155,13 +150,13 @@ Expression2: Node = {
     //
     //    "letrec x : T = t1 in t2"
     // is "let x = fix (-> x : T { t1 }) in t2"
-    "letrec" <var:Ident> ":" <t:Type> "=" <lambda_body:Expression2> "in" <body:Expression3> => {
+    "letrec" <var:Ident> ":" <t:Type> "=" <lambda_body:Expression2> "in" <body:Expression2> => {
         let lambda = Node::new_lambda(var.clone(), lambda_body, t);
         let fix = Node::new_fix(lambda);
         Node::new_let(var, fix, body)
     },
     // "let" variable "=" bound_value "in" body
-    "let" <var:Ident> "=" <bound_value:Expression2> "in" <body:Expression3> => {
+    "let" <var:Ident> "=" <bound_value:Expression2> "in" <body:Expression2> => {
         Node::new_let(var, bound_value, body)
     },
     <e:Expression3> => e,
@@ -199,16 +194,21 @@ Expression3: Node = {
 Expression4: Node = {
     // [apply]
     // expr ".." "(" expr ")"
-    <e:Expression4> ".." "(" <arg:Expression4> ")" => {
+    <e:Expression4> ".." "(" <arg:Expression0> ")" => {
         Node::new_apply(e, arg)
+    },
+    // [assign]
+    <e1:Expression4> ":=" <e2:Expression5> => {
+        Node::new_assign(e1, e2)
     },
     <e:Expression5> => e,
 }
 
 Expression5: Node = {
-    "iszero" <e:Expression6> => Node::new_iszero(e),
-    "succ" <e:Expression6> => Node::new_succ(e),
-    "pred" <e:Expression6> => Node::new_pred(e),
+    "iszero" <e:Expression5> => Node::new_iszero(e),
+    "succ" <e:Expression5> => Node::new_succ(e),
+    "pred" <e:Expression5> => Node::new_pred(e),
+    <p:Projection> => p,
     <e:Expression6> => e,
 }
 

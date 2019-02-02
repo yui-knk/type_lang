@@ -7,15 +7,15 @@ use std::process::exit;
 
 use type_lang::eval::{Evaluator};
 use type_lang::type_check::{TypeChecker};
-use type_lang::parser::{Parser};
+use type_lang::parser;
 
 use clap::{Arg, App};
 
 fn run(string: String) {
-    let mut parser = Parser::new(string);
+    let parser = parser::ProgramParser::new();
     let mut type_checker = TypeChecker::new();
     let mut eval = Evaluator::new();
-    let result = match parser.parse() {
+    let result = match parser.parse(&string) {
         Ok(node) => node,
         Err(err) => {
             eprintln!("error: {:?}", err);

@@ -2,10 +2,10 @@ extern crate itertools;
 #[macro_use]
 extern crate lalrpop_util;
 
+lalrpop_mod!(pub parser);
+
 pub mod eval;
-pub mod lexer;
 pub mod node;
-pub mod parser;
 pub mod ty;
 pub mod type_check;
 pub mod token;

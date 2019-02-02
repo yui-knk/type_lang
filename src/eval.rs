@@ -577,15 +577,15 @@ mod tests_env {
 #[cfg(test)]
 mod tests {
     use super::*;
+    lalrpop_mod!(pub parser);
     use value::{Value, Fields as ValueFields};
-    use parser::{Parser};
     use node::{Node};
     use ty::{Ty, Fields as TyFields};
     use type_check::{TypeChecker};
 
     fn eval_string(str: String) -> Result<Value, Error> {
-        let mut parser = Parser::new(str);
-        let node = parser.parse().unwrap();
+        let parser = parser::ProgramParser::new();
+        let node = parser.parse(&str).unwrap();
         let mut type_checker = TypeChecker::new();
         let _ = type_checker.check(&node).unwrap();
         let mut eval = Evaluator::new();
@@ -785,31 +785,49 @@ mod tests {
     }
 
     #[test]
-    fn test_eval_appy() {
-        let result = eval_string("-> x : Bool { x }.(false)".to_string());
+    fn test_eval_appy1() {
+        let result = eval_string("(-> x : Bool { x })..(false)".to_string());
         assert_eq!(result, Ok(Value::new_false()));
+    }
 
-        let result = eval_string("-> x : Bool { -> x : Bool { x }.(x) }.(true)".to_string());
+    #[test]
+    fn test_eval_appy2() {
+        let result = eval_string("(-> x : Bool { (-> x : Bool { x })..(x) })..(true)".to_string());
         assert_eq!(result, Ok(Value::new_true()));
+    }
 
-        let result = eval_string("-> x : Bool { -> x : Bool { x }.(false) }.(true)".to_string());
+    #[test]
+    fn test_eval_appy3() {
+        let result = eval_string("(-> x : Bool { (-> x : Bool { x })..(false) })..(true)".to_string());
         assert_eq!(result, Ok(Value::new_false()));
+    }
 
-        let result = eval_string("-> x : Bool -> Bool { x }.(-> y : Bool { y }).(true)".to_string());
+    #[test]
+    fn test_eval_appy4() {
+        let result = eval_string("(-> x : Bool -> Bool { x })..(-> y : Bool { y })..(true)".to_string());
         assert_eq!(result, Ok(Value::new_true()));
+    }
 
-        let result = eval_string("-> x : Bool -> Bool{ x }.( -> y : Bool { false } )".to_string());
+    #[test]
+    fn test_eval_appy5() {
+        let result = eval_string("(-> x : Bool -> Bool{ x })..( -> y : Bool { false } )".to_string());
         let node_false = Node::new_bool(false);
         // Type of lambda node is a type of arg.
         let ty = Ty::new_bool();
         let lambda = Node::new_lambda("y".to_string(), node_false, ty);
         assert_eq!(result, Ok(Value::new_lambda(lambda)));
+    }
 
+    #[test]
+    fn test_eval_appy6() {
         // subtyping
-        let result = eval_string("-> x : {b:Nat} { x.b }.( {a=false, b=10} )".to_string());
+        let result = eval_string("(-> x : {b:Nat} { x.b })..( {a=false, b=10} )".to_string());
         assert_eq!(result, Ok(Value::new_nat(10)));
+    }
 
-        let result = eval_string("-> x : {b:Nat} { x }.( {a=false, b=10} )".to_string());
+    #[test]
+    fn test_eval_appy7() {
+        let result = eval_string("(-> x : {b:Nat} { x })..( {a=false, b=10} )".to_string());
         let mut fields = ValueFields::new();
         fields.insert("a".to_string(), Box::new(Value::new_false()));
         fields.insert("b".to_string(), Box::new(Value::new_nat(10)));
@@ -818,7 +836,7 @@ mod tests {
 
     #[test]
     fn test_eval_projection_apply() {
-        let result = eval_string("{x= -> y:Nat { y }}.x.(1)".to_string());
+        let result = eval_string("{x= -> y:Nat { y }}.x..(1)".to_string());
         assert_eq!(result, Ok(Value::new_nat(1)));
     }
 
@@ -838,64 +856,79 @@ mod tests {
     }
 
     #[test]
-    fn test_eval_fix() {
+    fn test_eval_fix1() {
         // 10 + x function
         let result = eval_string("
-            (fix -> ie:Nat->Nat {
-                -> x:Nat {
-                    if iszero x
-                    then 10
-                    else succ ie.(pred x)
-                }
-            }).(10)
+            (fix
+                (-> ie:Nat->Nat {
+                    -> x:Nat {
+                        if iszero x
+                        then 10
+                        else succ ie..(pred x)
+                    }
+                })
+            )..(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_nat(20)));
+    }
 
+    #[test]
+    fn test_eval_fix2() {
         // iseven function
         let result = eval_string("
-            (fix -> ie:Nat->Bool {
-                -> x:Nat {
-                    if iszero x
-                    then true
-                    else
-                      if iszero pred x
-                      then false
-                      else ie.(pred pred x)
-                }
-            }).(10)
+            (fix
+                (-> ie:Nat->Bool {
+                    -> x:Nat {
+                        if iszero x
+                        then true
+                        else
+                          if iszero pred x
+                          then false
+                          else ie..(pred pred x)
+                    }
+                })
+            )..(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_true()));
+    }
 
+    #[test]
+    fn test_eval_fix3() {
         // iseven function
         let result = eval_string("
-            (fix -> ie:Nat->Bool {
-                -> x:Nat {
-                    if iszero x
-                    then true
-                    else
-                      if iszero pred x
-                      then false
-                      else ie.(pred pred x)
-                }
-            }).(9)
+            (fix
+                (-> ie:Nat->Bool {
+                    -> x:Nat {
+                        if iszero x
+                        then true
+                        else
+                          if iszero pred x
+                          then false
+                          else ie..(pred pred x)
+                    }
+                })
+            )..(9)
         ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
 
     #[test]
-    fn test_eval_letrec() {
+    fn test_eval_letrec1() {
         // 10 + x function
         let result = eval_string("
             letrec ie:Nat->Nat =
                 -> x:Nat {
                     if iszero x
                     then 10
-                    else succ ie.(pred x)}
+                    else succ ie..(pred x)}
             in
-                ie.(10)
+                ie..(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_nat(20)));
+    }
 
+    #[test]
+    fn test_eval_letrec2() {
         // iseven function
         let result = eval_string("
             letrec ie:Nat->Bool =
@@ -905,13 +938,16 @@ mod tests {
                     else
                       if iszero pred x
                       then false
-                      else ie.(pred pred x)
+                      else ie..(pred pred x)
                 }
             in
-                ie.(10)
+                ie..(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_true()));
+    }
 
+    #[test]
+    fn test_eval_letrec3() {
         // iseven function
         let result = eval_string("
             letrec ie:Nat->Bool =
@@ -921,10 +957,10 @@ mod tests {
                     else
                       if iszero pred x
                       then false
-                      else ie.(pred pred x)
+                      else ie..(pred pred x)
                 }
             in
-                ie.(9)
+                ie..(9)
         ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
