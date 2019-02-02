@@ -786,31 +786,31 @@ mod tests {
 
     #[test]
     fn test_eval_appy1() {
-        let result = eval_string("(-> x : Bool { x })..(false)".to_string());
+        let result = eval_string("(-> x : Bool { x })(false)".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
 
     #[test]
     fn test_eval_appy2() {
-        let result = eval_string("(-> x : Bool { (-> x : Bool { x })..(x) })..(true)".to_string());
+        let result = eval_string("(-> x : Bool { (-> x : Bool { x })(x) })(true)".to_string());
         assert_eq!(result, Ok(Value::new_true()));
     }
 
     #[test]
     fn test_eval_appy3() {
-        let result = eval_string("(-> x : Bool { (-> x : Bool { x })..(false) })..(true)".to_string());
+        let result = eval_string("(-> x : Bool { (-> x : Bool { x })(false) })(true)".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
 
     #[test]
     fn test_eval_appy4() {
-        let result = eval_string("(-> x : Bool -> Bool { x })..(-> y : Bool { y })..(true)".to_string());
+        let result = eval_string("(-> x : Bool -> Bool { x })(-> y : Bool { y })(true)".to_string());
         assert_eq!(result, Ok(Value::new_true()));
     }
 
     #[test]
     fn test_eval_appy5() {
-        let result = eval_string("(-> x : Bool -> Bool{ x })..( -> y : Bool { false } )".to_string());
+        let result = eval_string("(-> x : Bool -> Bool{ x })( -> y : Bool { false } )".to_string());
         let node_false = Node::new_bool(false);
         // Type of lambda node is a type of arg.
         let ty = Ty::new_bool();
@@ -821,13 +821,13 @@ mod tests {
     #[test]
     fn test_eval_appy6() {
         // subtyping
-        let result = eval_string("(-> x : {b:Nat} { x.b })..( {a=false, b=10} )".to_string());
+        let result = eval_string("(-> x : {b:Nat} { x.b })( {a=false, b=10} )".to_string());
         assert_eq!(result, Ok(Value::new_nat(10)));
     }
 
     #[test]
     fn test_eval_appy7() {
-        let result = eval_string("(-> x : {b:Nat} { x })..( {a=false, b=10} )".to_string());
+        let result = eval_string("(-> x : {b:Nat} { x })( {a=false, b=10} )".to_string());
         let mut fields = ValueFields::new();
         fields.insert("a".to_string(), Box::new(Value::new_false()));
         fields.insert("b".to_string(), Box::new(Value::new_nat(10)));
@@ -836,7 +836,7 @@ mod tests {
 
     #[test]
     fn test_eval_projection_apply() {
-        let result = eval_string("({x= -> y:Nat { y }}.x)..(1)".to_string());
+        let result = eval_string("({x= -> y:Nat { y }}.x)(1)".to_string());
         assert_eq!(result, Ok(Value::new_nat(1)));
     }
 
@@ -864,10 +864,10 @@ mod tests {
                     -> x:Nat {
                         if iszero x
                         then 10
-                        else succ ie..(pred x)
+                        else succ ie(pred x)
                     }
                 })
-            )..(10)
+            )(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_nat(20)));
     }
@@ -884,10 +884,10 @@ mod tests {
                         else
                           if iszero pred x
                           then false
-                          else ie..(pred pred x)
+                          else ie(pred pred x)
                     }
                 })
-            )..(10)
+            )(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_true()));
     }
@@ -904,10 +904,10 @@ mod tests {
                         else
                           if iszero pred x
                           then false
-                          else ie..(pred pred x)
+                          else ie(pred pred x)
                     }
                 })
-            )..(9)
+            )(9)
         ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }
@@ -920,9 +920,9 @@ mod tests {
                 -> x:Nat {
                     if iszero x
                     then 10
-                    else succ ie..(pred x)}
+                    else succ ie(pred x)}
             in
-                ie..(10)
+                ie(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_nat(20)));
     }
@@ -938,10 +938,10 @@ mod tests {
                     else
                       if iszero pred x
                       then false
-                      else ie..(pred pred x)
+                      else ie(pred pred x)
                 }
             in
-                ie..(10)
+                ie(10)
         ".to_string());
         assert_eq!(result, Ok(Value::new_true()));
     }
@@ -957,10 +957,10 @@ mod tests {
                     else
                       if iszero pred x
                       then false
-                      else ie..(pred pred x)
+                      else ie(pred pred x)
                 }
             in
-                ie..(9)
+                ie(9)
         ".to_string());
         assert_eq!(result, Ok(Value::new_false()));
     }

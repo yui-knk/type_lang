@@ -210,7 +210,7 @@ Expression5: Node = {
 Expression6: Node = {
     // [apply]
     // expr ".." "(" expr ")"
-    <e:Expression6> ".." "(" <arg:Expression0> ")" => {
+    <e:Expression6> "(" <arg:Expression0> ")" => {
         Node::new_apply(e, arg)
     },
     <e:Expression7> => e,

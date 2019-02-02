@@ -861,25 +861,25 @@ mod tests {
 
     #[test]
     fn test_check_apply1() {
-        let result = check_type_of_string(" (-> x : Bool { false })..(true)".to_string());
+        let result = check_type_of_string(" (-> x : Bool { false })(true)".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
     }
 
     #[test]
     fn test_check_apply2() {
-        let result = check_type_of_string("  (-> x : Bool { x })..(true)".to_string());
+        let result = check_type_of_string("  (-> x : Bool { x })(true)".to_string());
         assert_eq!(result, Ok(Ty::new_bool()));
     }
 
     #[test]
     fn test_check_apply3() {
-        let result = check_type_of_string("(-> x : Bool -> Bool { x })..(-> y : Bool { false })".to_string());
+        let result = check_type_of_string("(-> x : Bool -> Bool { x })(-> y : Bool { false })".to_string());
         assert_eq!(result, Ok(Ty::new_arrow(Ty::new_bool(), Ty::new_bool())));
     }
 
     #[test]
     fn test_check_apply4() {
-        let result = check_type_of_string("-> x : Bool -> Bool { (-> x : Bool -> Bool { x })..(x) }".to_string());
+        let result = check_type_of_string("-> x : Bool -> Bool { (-> x : Bool -> Bool { x })(x) }".to_string());
         assert_eq!(result, Ok(Ty::new_arrow(
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool()),
             Ty::new_arrow(Ty::new_bool(), Ty::new_bool())
@@ -889,7 +889,7 @@ mod tests {
     #[test]
     fn test_check_apply5() {
         // subtyping
-        let result = check_type_of_string(" (-> x : {b:Nat} { x })..({a=false, b=10}) ".to_string());
+        let result = check_type_of_string(" (-> x : {b:Nat} { x })({a=false, b=10}) ".to_string());
         let mut fields = Fields::new();
         fields.insert("b".to_string(), Box::new(Ty::new_nat()));
         let recode_ty = Ty::new_record(fields);
@@ -898,13 +898,13 @@ mod tests {
 
     #[test]
     fn test_check_apply6() {
-        let result = check_type_of_string(" (-> x : {b:Nat} { x.b })..({a=false, b=10}) ".to_string());
+        let result = check_type_of_string(" (-> x : {b:Nat} { x.b })({a=false, b=10}) ".to_string());
         assert_eq!(result, Ok(Ty::new_nat()));
     }
 
     #[test]
     fn test_check_apply7() {
-        let result = check_type_of_string(" (-> x : {c:Nat} { x })..({a=false, b=10})".to_string());
+        let result = check_type_of_string(" (-> x : {c:Nat} { x })({a=false, b=10})".to_string());
         assert!(result.is_err());
     }
 
@@ -928,13 +928,13 @@ mod tests {
 
     #[test]
     fn test_check_variable_not_found() {
-        let result = check_type_of_string("(-> x : Bool -> Bool { y })..(false)".to_string());
+        let result = check_type_of_string("(-> x : Bool -> Bool { y })(false)".to_string());
         assert_eq!(result, Err(Error::VariableNotFound("y".to_string())));
     }
 
     #[test]
     fn test_check_type_mismatch() {
-        let result = check_type_of_string("false..(true)".to_string());
+        let result = check_type_of_string("false(true)".to_string());
         assert_eq!(result, Err(Error::TypeMismatch("Bool is not arrow type.".to_string())));
     }
 }

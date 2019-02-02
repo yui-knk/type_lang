@@ -151,10 +151,10 @@ mod tests {
                     -> x:Nat {
                         if iszero x
                         then 10
-                        else succ ie..(pred x)
+                        else succ ie(pred x)
                     }
                 })
-            )..(10)
+            )(10)
         ");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Node::new_apply(
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_parse_apply() {
-        let result = parser::ProgramParser::new().parse(" x..(y) ");
+        let result = parser::ProgramParser::new().parse(" x(y) ");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Node {
             kind: Kind::Apply(
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_parse_apply_2() {
-        let result = parser::ProgramParser::new().parse(" (-> x : Bool -> Bool { x })..(false) ");
+        let result = parser::ProgramParser::new().parse(" (-> x : Bool -> Bool { x })(false) ");
         println!("{:?}", result);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Node {
