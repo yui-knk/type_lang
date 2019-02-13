@@ -1,3 +1,5 @@
+use std::io::{Write};
+
 use ty::Ty;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -235,4 +237,114 @@ impl Node {
             _ => false
         }
     }
+}
+
+pub fn print_with_indent(buf: &mut Write, node: &Node, level: usize, space_count: usize) -> std::io::Result<()> {
+    let _indent = " ".repeat(level * space_count);
+    let indent = _indent.as_bytes();
+
+    match node.kind {
+        NoneExpression => {
+            buf.write(indent)?;
+            write!(buf, "NoneExpression\n")?;
+        },
+        VarRef(ref var) => {
+            buf.write(indent)?;
+            write!(buf, "VarRef ({})\n", var)?;
+        },
+        Lambda(ref var, ref node1, ref ty) => {
+            buf.write(indent)?;
+            write!(buf, "Lambda ({})\n", var)?;
+            print_with_indent(buf, &node1, level + 1, space_count)?;
+        },
+        Let(ref var, ref node1, ref node2) => {
+            buf.write(indent)?;
+            write!(buf, "Let ({})\n", var)?;
+            print_with_indent(buf, &node1, level + 1, space_count)?;
+            print_with_indent(buf, &node2, level + 1, space_count)?;
+        },
+        Apply(ref node1, ref node2) => {
+            buf.write(indent)?;
+            write!(buf, "Apply\n")?;
+            print_with_indent(buf, &node1, level + 1, space_count)?;
+            print_with_indent(buf, &node2, level + 1, space_count)?;
+        },
+        Bool(b) => {
+            buf.write(indent)?;
+            write!(buf, "Bool ({})\n", b)?;
+        },
+        Zero => {
+            buf.write(indent)?;
+            write!(buf, "Zero\n")?;
+        },
+        Succ(ref node1) => {
+            buf.write(indent)?;
+            write!(buf, "Succ\n")?;
+        },
+        Pred(ref node1) => {
+            buf.write(indent)?;
+            write!(buf, "Pred\n")?;
+        },
+        Iszero(ref node1) => {
+            buf.write(indent)?;
+            write!(buf, "Iszero\n")?;
+        },
+        Record(ref f) => {
+            buf.write(indent)?;
+            write!(buf, "Record\n")?;
+        },
+        Projection(ref node1, ref label) => {
+            buf.write(indent)?;
+            write!(buf, "Projection\n")?;
+        },
+        If(ref node1, ref node2, ref node3) => {
+            buf.write(indent)?;
+            write!(buf, "If\n")?;
+            print_with_indent(buf, &node1, level + 1, space_count)?;
+            print_with_indent(buf, &node2, level + 1, space_count)?;
+            print_with_indent(buf, &node3, level + 1, space_count)?;
+        },
+        Unit => {
+            buf.write(indent)?;
+            write!(buf, "Unit\n")?;
+        },
+        Tag(ref tag, ref node1, ref ty) => {
+            buf.write(indent)?;
+            write!(buf, "Tag\n")?;
+        },
+        Case(ref node1, ref cases) => {
+            buf.write(indent)?;
+            write!(buf, "Case\n")?;
+        },
+        As(ref node1, ref ty) => {
+            buf.write(indent)?;
+            write!(buf, "As\n")?;
+        },
+        Fix(ref node1) => {
+            buf.write(indent)?;
+            write!(buf, "Fix\n")?;
+        },
+        Ref(ref node1) => {
+            buf.write(indent)?;
+            write!(buf, "Ref\n")?;
+            print_with_indent(buf, &node1, level + 1, space_count)?;
+        },
+        Deref(ref node1) => {
+            buf.write(indent)?;
+            write!(buf, "Deref\n")?;
+            print_with_indent(buf, &node1, level + 1, space_count)?;
+        },
+        Assign(ref node1, ref node2) => {
+            buf.write(indent)?;
+            write!(buf, "Assign\n")?;
+            print_with_indent(buf, &node1, level + 1, space_count)?;
+            print_with_indent(buf, &node2, level + 1, space_count)?;
+        },
+        Loc(ref l) => {
+            buf.write(indent)?;
+            write!(buf, "Loc\n")?;
+        },
+    }
+
+    Ok(())
 }
